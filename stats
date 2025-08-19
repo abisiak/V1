@@ -1,1 +1,393 @@
-rawr
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local StarterGui = game:GetService("StarterGui")
+local map = workspace:WaitForChild("map")
+
+-----------------------------------------------------
+-- 🔥 MAKIMA TIMER UI
+-----------------------------------------------------
+
+local ScreenGui1 = Instance.new("ScreenGui")
+ScreenGui1.Name = "MakimaTimer"
+ScreenGui1.Parent = Player:WaitForChild("PlayerGui")
+
+local TimerLabel = Instance.new("TextLabel")
+local tapCount = 0
+
+TimerLabel.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch then
+		tapCount += 1
+		task.delay(0.4, function() tapCount = 0 end)
+
+		if tapCount >= 2 then
+			local gui = Player:FindFirstChild("PlayerGui"):FindFirstChild("MobilePlayerDataViewer")
+			if gui then gui.Enabled = true end
+		end
+	end
+end)
+TimerLabel.Parent = ScreenGui1
+TimerLabel.AnchorPoint = Vector2.new(0, 1)
+TimerLabel.Position = UDim2.new(0, 10, 1, -20)
+TimerLabel.Size = UDim2.new(0, 80, 0, 16)
+TimerLabel.BackgroundTransparency = 0.3
+TimerLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TimerLabel.TextColor3 = Color3.new(1, 1, 1)
+TimerLabel.TextScaled = true
+TimerLabel.Font = Enum.Font.GothamBold
+
+local baseInterval = 2 * 60
+local delayPerSpawn = 102 / 60 -- 1.7 min
+
+local function timeToMinutes(timeString)
+	local days, hours, minutes = string.match(timeString, "(%d+):(%d+):(%d+)")
+	return tonumber(days) * 1440 + tonumber(hours) * 60 + tonumber(minutes)
+end
+
+local function minutesToTime(mins)
+	local hours = math.floor(mins / 60)
+	local minutes = math.floor(mins % 60)
+	return string.format("%02d:%02d", hours, minutes)
+end
+
+task.spawn(function()
+	while true do
+		local serverTimeStr = ReplicatedStorage:WaitForChild("ServerTime").Value
+		local currentMinutes = timeToMinutes(serverTimeStr)
+		local spawnDuration = baseInterval + delayPerSpawn
+		local estimatedSpawnCount = math.floor(currentMinutes / spawnDuration)
+		local nextSpawnTime = (estimatedSpawnCount + 1) * spawnDuration
+		local minutesRemaining = nextSpawnTime - currentMinutes
+
+		if minutesRemaining <= 0 then
+			TimerLabel.Text = "¡Makima está por aparecer!"
+		else
+			TimerLabel.Text = "Makima will appear in: " .. minutesToTime(minutesRemaining)
+		end
+
+		wait(10)
+	end
+end)
+
+-----------------------------------------------------
+-- 📊 PLAYER DATA VIEWER UI
+-----------------------------------------------------
+
+local ScreenGui2 = Instance.new("ScreenGui")
+ScreenGui2.Name = "MobilePlayerDataViewer"
+ScreenGui2.Parent = Player:WaitForChild("PlayerGui")
+ScreenGui2.ResetOnSpawn = false
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0.4, 0, 0.7, 0)
+mainFrame.Position = UDim2.new(0.3, 0, 0.15, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = ScreenGui2
+
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
+closeButton.Text = "X"
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 18
+closeButton.TextColor3 = Color3.new(1, 1, 1)
+closeButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+closeButton.Parent = mainFrame
+
+closeButton.MouseButton1Click:Connect(function()
+	ScreenGui2.Enabled = false
+end)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "Datos del Jugador"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = mainFrame
+
+local dataLabel = Instance.new("TextLabel")
+dataLabel.Size = UDim2.new(1, -20, 0.75, -20)
+dataLabel.Position = UDim2.new(0, 10, 0, 40)
+dataLabel.TextXAlignment = Enum.TextXAlignment.Left
+dataLabel.TextYAlignment = Enum.TextYAlignment.Top
+dataLabel.TextWrapped = true
+dataLabel.Text = "Cargando..."
+dataLabel.Font = Enum.Font.SourceSans
+dataLabel.TextSize = 18
+dataLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+dataLabel.BackgroundTransparency = 1
+dataLabel.TextScaled = false
+dataLabel.Parent = mainFrame
+
+local prevButton = Instance.new("TextButton")
+prevButton.Size = UDim2.new(0.45, -5, 0, 30)
+prevButton.Position = UDim2.new(0.05, 0, 0.9, 0)
+prevButton.Text = "⟨ Anterior"
+prevButton.Font = Enum.Font.GothamBold
+prevButton.TextSize = 16
+prevButton.TextColor3 = Color3.new(1, 1, 1)
+prevButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+prevButton.Parent = mainFrame
+
+local nextButton = Instance.new("TextButton")
+nextButton.Size = UDim2.new(0.45, -5, 0, 30)
+nextButton.Position = UDim2.new(0.5, 0, 0.9, 0)
+nextButton.Text = "Siguiente ⟩"
+nextButton.Font = Enum.Font.GothamBold
+nextButton.TextSize = 16
+nextButton.TextColor3 = Color3.new(1, 1, 1)
+nextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+nextButton.Parent = mainFrame
+
+local keywords = { "skillowned", "skills", "level", "lvl", "cash", "money", "rebirth" }
+local otherPlayers = {}
+for _, p in ipairs(Players:GetPlayers()) do
+	if p ~= Player then
+		table.insert(otherPlayers, p)
+	end
+end
+
+local currentIndex = 1
+
+local function matchesKeyword(name)
+	name = name:lower()
+	for _, keyword in pairs(keywords) do
+		if name:find(keyword) then return true end
+	end
+	return false
+end
+
+local function updateDisplay()
+	local plr = otherPlayers[currentIndex]
+	if not plr then
+		dataLabel.Text = "No hay jugadores."
+		return
+	end
+	local data = plr:FindFirstChild("Data")
+	if not data then
+		dataLabel.Text = plr.Name .. "\n(No tiene carpeta Data)"
+		return
+	end
+
+	-- Buscar valores específicos
+	local levelVal = data:FindFirstChild("Level") or data:FindFirstChild("Lvl")
+	local cashVal = data:FindFirstChild("Cash") or data:FindFirstChild("Money")
+	local rebirthVal = data:FindFirstChild("Rebirths") or data:FindFirstChild("Rebirth")
+	local hybridVal = data:FindFirstChild("Hybrid")
+	local storageVal = data:FindFirstChild("Storage")
+	local reputationVal = data:FindFirstChild("Reputation")
+
+	local text = plr.Name .. ":\n"
+	if cashVal and cashVal:IsA("ValueBase") then
+		text = text .. "• Cash: " .. tostring(cashVal.Value) .. "\n"
+	end
+	if levelVal and levelVal:IsA("ValueBase") then
+		text = text .. "• Level: " .. tostring(levelVal.Value) .. "\n"
+	end
+	if rebirthVal and rebirthVal:IsA("ValueBase") then
+		text = text .. "• Rebirths: " .. tostring(rebirthVal.Value) .. "\n"
+	end
+	if hybridVal and hybridVal:IsA("ValueBase") then
+		text = text .. "• Hybrid: " .. tostring(hybridVal.Value) .. "\n"
+	end
+	if storageVal and storageVal:IsA("ValueBase") then
+		text = text .. "• Storage: " .. tostring(storageVal.Value) .. "\n"
+	end
+	if reputationVal and reputationVal:IsA("ValueBase") then
+		text = text .. "• Reputation: " .. tostring(reputationVal.Value) .. "\n"
+	end
+
+	dataLabel.Text = text
+end
+
+nextButton.MouseButton1Click:Connect(function()
+	if #otherPlayers == 0 then return end
+	currentIndex = (currentIndex % #otherPlayers) + 1
+	updateDisplay()
+end)
+
+prevButton.MouseButton1Click:Connect(function()
+	if #otherPlayers == 0 then return end
+	currentIndex = (currentIndex - 2 + #otherPlayers) % #otherPlayers + 1
+	updateDisplay()
+end)
+
+updateDisplay()
+
+Players.PlayerAdded:Connect(function(p)
+	if p ~= Player then
+		table.insert(otherPlayers, p)
+		updateDisplay()
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+	for i, plr in ipairs(otherPlayers) do
+		if plr == p then
+			table.remove(otherPlayers, i)
+			break
+		end
+	end
+	if currentIndex > #otherPlayers then currentIndex = 1 end
+	updateDisplay()
+end)
+
+-----------------------------------------------------
+-- 💓 DEVIL HEART DETECTOR
+-----------------------------------------------------
+
+local function crearNombre(part)
+	if not part:FindFirstChild("DevilHeartName") then
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "DevilHeartName"
+		billboard.Size = UDim2.new(0, 100, 0, 40)
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.AlwaysOnTop = true
+		billboard.MaxDistance = 10000
+		billboard.Adornee = part
+		billboard.Parent = part
+
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Text = "🩸 devil heart"
+		label.TextColor3 = Color3.fromRGB(255, 0, 0)
+		label.TextStrokeTransparency = 0
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBlack
+		label.Parent = billboard
+	end
+end
+
+local function resaltarParte(part)
+	if not part:FindFirstChild("HeartHighlight") then
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "HeartHighlight"
+		highlight.FillColor = Color3.fromRGB(255, 0, 0)
+		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		highlight.FillTransparency = 0.2
+		highlight.OutlineTransparency = 0
+		highlight.Adornee = part
+		highlight.Parent = part
+	end
+end
+
+local function mostrarNotificacion()
+	pcall(function()
+		StarterGui:SetCore("SendNotification", {
+			Title = "Devil Heart Detectado",
+			Text = "¡Hay un corazón disponible para recoger!",
+			Duration = 5
+		})
+	end)
+end
+
+local function manejarPrompt(prompt)
+	if prompt.ActionText == "Pick up" and prompt.Parent:IsA("BasePart") then
+		local part = prompt.Parent
+		resaltarParte(part)
+		crearNombre(part)
+		mostrarNotificacion()
+	end
+end
+
+for _, obj in pairs(map:GetDescendants()) do
+	if obj:IsA("ProximityPrompt") and obj.ActionText == "Pick up" then
+		manejarPrompt(obj)
+	end
+end
+
+map.DescendantAdded:Connect(function(desc)
+	if desc:IsA("ProximityPrompt") and desc.ActionText == "Pick up" then
+		manejarPrompt(desc)
+	end
+end)
+local Workspace = game:GetService("Workspace")
+
+local livingFolder = Workspace:WaitForChild("Living")
+local HOLD_DURATION = 1.4
+
+-- Función para cambiar el HoldDuration de todos los ProximityPrompt dentro de un objeto
+local function actualizarPromptsEn(obj)
+	for _, prompt in ipairs(obj:GetDescendants()) do
+		if prompt:IsA("ProximityPrompt") then
+			prompt.HoldDuration = HOLD_DURATION
+		end
+	end
+end
+
+-- Revisar los prompts actuales
+for _, child in ipairs(livingFolder:GetChildren()) do
+	actualizarPromptsEn(child)
+end
+
+-- Detectar si se añaden nuevos hijos a workspace.Living
+livingFolder.ChildAdded:Connect(function(child)
+	-- Cuando se añaden nuevos hijos, revisar sus descendientes
+	child.DescendantAdded:Connect(function(desc)
+		if desc:IsA("ProximityPrompt") then
+			desc.HoldDuration = HOLD_DURATION
+		end
+	end)
+	
+	-- También actualizar inmediatamente si ya contiene ProximityPrompts
+	actualizarPromptsEn(child)
+end)
+
+-- También detectar si se añaden ProximityPrompts directamente en objetos ya existentes
+for _, child in ipairs(livingFolder:GetChildren()) do
+	child.DescendantAdded:Connect(function(desc)
+		if desc:IsA("ProximityPrompt") then
+			desc.HoldDuration = HOLD_DURATION
+		end
+	end)
+end
+-- https://scriptblox.com/script/Universal-Script-Infinite-Yield-43437
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+local Workspace = game:GetService("Workspace")
+
+local livingFolder = Workspace:WaitForChild("Living")
+local HOLD_DURATION = 1.5
+
+-- Función para cambiar el HoldDuration de todos los ProximityPrompt dentro de un objeto
+local function actualizarPromptsEn(obj)
+	for _, prompt in ipairs(obj:GetDescendants()) do
+		if prompt:IsA("ProximityPrompt") then
+			prompt.HoldDuration = HOLD_DURATION
+		end
+	end
+end
+
+-- Revisar los prompts actuales
+for _, child in ipairs(livingFolder:GetChildren()) do
+	actualizarPromptsEn(child)
+end
+
+-- Detectar si se añaden nuevos hijos a workspace.Living
+livingFolder.ChildAdded:Connect(function(child)
+	-- Cuando se añaden nuevos hijos, revisar sus descendientes
+	child.DescendantAdded:Connect(function(desc)
+		if desc:IsA("ProximityPrompt") then
+			desc.HoldDuration = HOLD_DURATION
+		end
+	end)
+	
+	-- También actualizar inmediatamente si ya contiene ProximityPrompts
+	actualizarPromptsEn(child)
+end)
+
+-- También detectar si se añaden ProximityPrompts directamente en objetos ya existentes
+for _, child in ipairs(livingFolder:GetChildren()) do
+	child.DescendantAdded:Connect(function(desc)
+		if desc:IsA("ProximityPrompt") then
+			desc.HoldDuration = HOLD_DURATION
+		end
+	end)
+end
