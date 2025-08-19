@@ -92,7 +92,7 @@ local animationReactions = {
 --chainsaw Z
 	["12630461862"] = { key = "F", delay = 0.4, range = {min = 0, max =170} },
 --axe x1
-	["12694331871"] = { key = "F", delay = 0.2, range = {min = 0, max = 9.5} },
+	["12694331871"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.5} },
 --knife/karambit m2
 	["7393178909"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
 --axe x2
@@ -201,7 +201,7 @@ animationReactions["11412048186"] = {
     { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human" },
 }
 animationReactions["854420980"] = {
-    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1 },
+    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1 },  
     { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human" },
 }
 animationReactions["8544209804"] = {
@@ -217,21 +217,25 @@ animationReactions["11367425425"] = {
 animationReactions["5502444144"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
     { reaction = "lock", delay = 0, range = {min = 0, max = 10}, rv = false },
+    { key = "E", delay = 0.1, range = {min = 0, max = 14},  rv = false, priority = 2, state = "hybrid" },
 }
 
 animationReactions["5502635805"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
     { reaction = "lock", delay = 0, range = {min = 0, max = 10}, rv = false },
+  { key = "E", delay = 0.1, range = {min = 0, max = 14},  rv = false, priority = 2, state = "hybrid" },
 }
 
 animationReactions["5502286572"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
     { reaction = "lock", delay = 0, range = {min = 0, max = 10}, rv = false },
+  { key = "E", delay = 0.1, range = {min = 0, max = 14},  rv = false, priority = 2, state = "hybrid" },
 }
 
 animationReactions["5502543898"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
     { reaction = "lock", delay = 0, range = {min = 0, max = 10}, rv = false },
+  { key = "E", delay = 0.1, range = {min = 0, max = 14},  rv = false, priority = 2, state = "hybrid" },
 }
 
 -- Redirect R->F si se activa
