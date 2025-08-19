@@ -216,25 +216,25 @@ animationReactions["11367425425"] = {
 
 animationReactions["5502444144"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 10}, rv = false },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 14}, rv = false },
     { key = "E", delay = 0.1, range = {min = 0, max = 14},  rv = false, priority = 2, state = "hybrid" },
 }
 
 animationReactions["5502635805"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 10}, rv = false },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 14}, rv = false },
   { key = "E", delay = 0.1, range = {min = 0, max = 14},  rv = false, priority = 2, state = "hybrid" },
 }
 
 animationReactions["5502286572"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 10}, rv = false },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 14}, rv = false },
   { key = "E", delay = 0.1, range = {min = 0, max = 14},  rv = false, priority = 2, state = "hybrid" },
 }
 
 animationReactions["5502543898"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 10}, rv = false },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 14}, rv = false },
   { key = "E", delay = 0.1, range = {min = 0, max = 14},  rv = false, priority = 2, state = "hybrid" },
 }
 
