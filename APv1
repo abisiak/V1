@@ -92,11 +92,11 @@ local animationReactions = {
 --chainsaw Z
 	["12630461862"] = { key = "F", delay = 0.4, range = {min = 0, max =170} },
 --axe x1
-	["12694331871"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.5} },
+	["12694331871"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.5}, rv = false },
 --knife/karambit m2
 	["7393178909"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
 --axe x2
-	["12694448884"] = { key = "F", delay = 0.2, range = {min = 0, max = 9.5} },
+	["12694448884"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.5}, rv = false },
 --deep sea E
 	["16033074314"] = { key = "Q", delay = 0.1, range = {min = 0, max = 15} },
 --axe x3
@@ -106,11 +106,11 @@ local animationReactions = {
 --axe m2
 	["12702972513"] = { key = "F", delay = 0.2, range = {min = 0, max = 9.5} },
 --sledgehammer x1
-	["15430188883"] = { key = "F", delay = 0.2, range = {min = 0, max = 9.5} },
+	["15430188883"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.5} },
 --sledgehammer x2
-	["15430192542"] = { key = "F", delay = 0.2, range = {min = 0, max = 9.6} },
+	["15430192542"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.6} },
 --sledgehammer x3
-	["15430196462"] = { key = "F", delay = 0.2, range = {min = 0, max = 9.6} },
+	["15430196462"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.6} },
 --sledgehammer m2
 	["15581919407"] = { key = "F", delay = 0.2, range = {min = 0, max = 10}, rv = false },
 --axe E
