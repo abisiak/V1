@@ -88,7 +88,7 @@ local animationReactions = {
 --bomb x?
 	["12641656228"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
 --chainsaw m2
-	["11916882700"] = { key = "F", delay = 0.2, range = {min = 1, max = 25}, rv = false },
+	["11916882700"] = { key = "F", delay = 0.2, range = {min = 1, max = 27}, rv = false },
 --chainsaw Z
 	["12630461862"] = { key = "F", delay = 0.4, range = {min = 0, max =170} },
 --axe x1
