@@ -1,0 +1,298 @@
+-- Servicios
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+-- Variables
+local player = Players.LocalPlayer
+local ct = player:WaitForChild("PlayerGui"):WaitForChild("guis"):WaitForChild("CT")
+local nivel = player:WaitForChild("Data"):WaitForChild("Level").Value
+
+-- Estados
+local activarAsesinato = false
+local activarTP = false
+local simularE = false
+local forzarCamara = false
+local ultimoTexto = ""
+local meetHunterDetectado = false
+local textoFiendActivo = false
+local ejecutando = false
+
+-- Excepcion NPC
+local excepcionNPC = "Zombie Devil"
+
+-- Funciones auxiliares
+local function getRoot(char)
+return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+-- Eliminación de NPCs
+local function matarNPCs()
+for _, obj in pairs(workspace:GetDescendants()) do
+if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
+local humanoid = obj:FindFirstChildOfClass("Humanoid")
+if obj.Name ~= player.Name and obj.Name ~= excepcionNPC then
+humanoid.Health = 0
+end
+end
+end
+end
+
+-- Loop de asesinatos
+task.spawn(function()
+while true do
+if activarAsesinato then
+matarNPCs()
+end
+task.wait(0.2)
+end
+end)
+
+-- Loop de simulación de tecla E
+task.spawn(function()
+while true do
+if simularE then
+VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, nil)
+task.wait(0.1)
+VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, nil)
+end
+task.wait(0.1)
+end
+end)
+
+-- Fijar cámara
+task.spawn(function()
+while true do
+task.wait()
+if forzarCamara and player.Character and getRoot(player.Character) then
+local cam = workspace.CurrentCamera
+local root = getRoot(player.Character)
+cam.CameraType = Enum.CameraType.Scriptable
+cam.CFrame = CFrame.new(root.Position + Vector3.new(0, 5, -10), root.Position)
+end
+end
+end)
+
+-- Teletransporte por nivel
+task.spawn(function()
+    while true do
+        if activarTP and player.Character and getRoot(player.Character) then
+            local tpPosition
+            if nivel >= 20 and nivel <= 150 then
+                tpPosition = Vector3.new(-2619.74, 941.73, 449.21)
+            elseif nivel >= 15 and nivel <= 16 then
+                tpPosition = Vector3.new(-1887.75, 942.60, -760.72)
+            end
+            if tpPosition then
+                getRoot(player.Character).CFrame = CFrame.new(tpPosition)
+            end
+        end
+        task.wait(0.2)
+    end
+end)
+
+-- Detección de textos
+task.spawn(function()
+while true do
+local texto = ct.Text
+if texto ~= ultimoTexto then
+ultimoTexto = texto
+warn("[DETECCIÓN DE TEXTO] Texto nuevo: ", texto)
+
+-- DETONANTE 1
+if texto:match("Your life is in risk!%s+Leaving will result in punishment%.") and nivel >= 20 then
+warn("[DETONANTE 1] Riesgo de vida detectado")
+
+wait(0.2)
+activarTP = true
+simularE = true
+forzarCamara = true
+
+-- DETONANTE 2.0    
+    elseif texto:match("Find and defeat all fiends%.") then    
+        warn("[DETONANTE 2.0] Find and defeat all fiends")    
+        textoFiendActivo = true    
+        meetHunterDetectado = false    
+        task.spawn(function()    
+            while textoFiendActivo and ct.Text:match("Find and defeat all fiends%.") do    
+                warn("[TP] Reposicionando a zona inicial de fiends")    
+                local root = getRoot(player.Character)    
+                if root then    
+                    root.CFrame = CFrame.new(1136, 1600, -985)    
+                end    
+                task.wait(6)    
+            end    
+        end)    
+
+    -- DETONANTE 2.1    
+    elseif texto:match("Meet the neon hunter%.") then    
+        warn("[DETONANTE 2.1] Meet neon hunter")    
+        textoFiendActivo = false    
+        if not meetHunterDetectado then    
+            meetHunterDetectado = true    
+            task.spawn(function()    
+                task.wait(0.5)    
+                local root = getRoot(player.Character)    
+                if root then    
+                    warn("[TP] Teletransportando a zona del neon hunter")    
+                    root.CFrame = CFrame.new(1024, 1661.17, -825)    
+                    wait(1)
+                    root.CFrame = CFrame.new(1024, 1661.17, -825)   
+                    wait(1)
+                    root.CFrame = CFrame.new(1024, 1661.17, -825)   
+                else    
+                    warn("[TP ERROR] No se encontró el HumanoidRootPart")    
+                end    
+            end)    
+        end    
+
+    -- DETONANTE 2.2    
+    elseif texto:match("Finish the neon hunter%.") then    
+        warn("[DETONANTE 2.2] Finish the neon hunter")    
+        task.spawn(function()    
+            activarAsesinato = true    
+            task.wait(1)    
+            activarAsesinato = false    
+        end)    
+
+    -- DETONANTE 2.3    
+    elseif texto:match("Defeat the weird sideburns guy%.") then    
+        warn("[DETONANTE 2.3] Defeat the weird sideburns guy")    
+        task.delay(1, function()    
+            activarAsesinato = true    
+        end)    
+
+    -- DETONANTE 3 (Wave 1)    
+    elseif texto:match("Wave:%s*1") then    
+        warn("[DETONANTE 3] Wave 1 detectado")    
+        activarAsesinato = true    
+
+    -- DETONANTE 3.1 (Wave 5)    
+    elseif texto:match("Wave:%s*5") and not ejecutando then    
+        warn("[DETONANTE 3.1] Wave 5 detectado - iniciando secuencia de zombie")    
+        ejecutando = true    
+
+        task.spawn(function()    
+            local root = getRoot(player.Character)    
+            if not root then    
+                warn("❌ No se encontró el HumanoidRootPart")    
+                ejecutando = false    
+                return    
+            end   
+            wait(1)
+
+task.spawn(function()
+while ejecutando and root do
+root.CFrame = CFrame.new(84, 44, -9)
+task.wait() -- sin argumentos = menor delay posible
+end
+end)
+--root.Anchored = true
+
+local function obtenerZombieDevil()    
+                for _, obj in ipairs(workspace:GetDescendants()) do    
+                    if obj:IsA("Model") and obj.Name == "Zombie Devil" then    
+                        return obj    
+                    end    
+                end    
+                return nil    
+            end    
+
+            local zombie = obtenerZombieDevil()    
+            if not zombie then    
+                warn("❌ Zombie Devil no encontrado")    
+                ejecutando = false    
+                return    
+            end    
+
+            local function getZombiePart(z)    
+                return z:FindFirstChild("HumanoidRootPart") or z:FindFirstChild("Torso") or z.PrimaryPart    
+            end    
+
+            local zombiePart = getZombiePart(zombie)    
+            if not zombiePart then    
+                warn("❌ Parte del zombie no encontrada")    
+                ejecutando = false    
+                return    
+            end    
+            zombiePart.Anchored = false    
+
+            task.spawn(function()    
+                while ejecutando and root and zombiePart do    
+                    local objetivo = zombiePart.Position    
+                    root.CFrame = CFrame.new(root.Position, Vector3.new(objetivo.X, root.Position.Y, objetivo.Z))    
+                    task.wait(0.1)    
+                end    
+            end)    
+
+            task.wait(0.5)    
+
+            local function presionarTecla2()    
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Two, false, game)    
+                task.wait(0.1)    
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Two, false, game)    
+            end
+
+wait(2)
+presionarTecla2()
+
+wait(2)
+local humanoid = zombie:FindFirstChildOfClass("Humanoid")
+if humanoid then
+humanoid.Health = 0
+warn("🧟 Zombie eliminado con éxito.")
+else
+warn("❌ No se pudo eliminar el Zombie Devil.")
+end
+wait(0.5)
+presionarTecla2()
+-- Paso final tras matar al zombie
+task.wait(1)
+presionarTecla2()
+
+-- Activar teletransporte infinito cada 2s
+task.spawn(function()
+    while true do
+        local root = getRoot(player.Character)
+        if root then
+            root.CFrame = CFrame.new(84, 800, -9)
+        end
+        task.wait(2)
+    end
+end)
+
+-- Finalizar la secuencia una sola vez
+
+ejecutando = false
+warn("✅ Secuencia completa finalizada.")
+end)
+end
+end
+task.wait(0.5)
+end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        local args = {
+            "Dash",
+            ""
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("events"):WaitForChild("remote"):FireServer(unpack(args))
+    end
+end)
+task.spawn(function()
+	local paths = {
+		workspace:WaitForChild("Interactable"):WaitForChild("raids"):WaitForChild("Mansion"):WaitForChild("Trigger"):WaitForChild("ProximityPrompt"),
+		workspace:WaitForChild("Interactable"):WaitForChild("raids"):WaitForChild("ZombieRaid"):WaitForChild("Trigger"):WaitForChild("ProximityPrompt")
+	}
+
+	for _, prompt in pairs(paths) do
+		if prompt:IsA("ProximityPrompt") then
+			prompt.HoldDuration = 0
+			warn("✅ HoldDuration ajustado a 0 para:", prompt:GetFullName())
+		else
+			warn("❌ No se encontró un ProximityPrompt en:", prompt:GetFullName())
+		end
+	end
+end)
