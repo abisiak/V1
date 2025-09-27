@@ -525,7 +525,7 @@ local function react(player, id, config)
 			if config.lockName and type(config.lockName) == "string" and config.lockName ~= "" then
 				nameArg = config.lockName
 			end
-			activateLockByName(nameArg, config.lockDuration or 1)
+			activateLockByName(nameArg, config.lockDuration or 1.3)
 			return
 		end
 
