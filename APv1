@@ -86,7 +86,7 @@ local animationReactions = {
 --shark r
 ["108740270242172"] = { key = "Q", delay = 0.1, range = {min = 0, max = 34}, rv = false },
 --shark chaw
-["130481997116962"] = { key = "F", delay = 0, range = {min = 0, max = 23}, rv = false },
+	["130481997116962"] = { key = "F", delay = 0, range = {min = 1, max = 27}, rv = false },
 --bomb x?
 	["12641658796"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
 --bomb x?
