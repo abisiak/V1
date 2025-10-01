@@ -539,16 +539,25 @@ local function react(player, id, config)
 	end)
 end
 
--- onAnimationPlayed: admite lista o single config; prioridad opcional (si ningun priority -> ejecutar todas)
-local function onAnimationPlayed(track, humanoid, isLocal, player)
-	if not autoParryEnabled then return end
-	if not track or not track.Animation or not track.Animation.AnimationId then return end
+local function onAnimationPlayed(track, owner, isLocal, player)
+    if not autoParryEnabled then return end
+    if not track or not track.Animation or not track.Animation.AnimationId then return end
 
-	local id = track.Animation.AnimationId:match("%d+")
-	if not id then return end
+    local id = track.Animation.AnimationId:match("%d+")
+    if not id then return end
 
-	local targetHRP = humanoid.Parent and humanoid.Parent:FindFirstChild("HumanoidRootPart")
-	if not targetHRP then return end
+    -- owner puede ser un Humanoid (cuando lo llamas desde humanoid.AnimationPlayed)
+    -- o el Model/Character (cuando lo llamas desde Animator.AnimationPlayed)
+    local character
+    if owner and owner.IsA and owner:IsA("Humanoid") then
+        character = owner.Parent
+    elseif owner and owner.IsA and owner:IsA("Model") then
+        character = owner
+    end
+
+    local targetHRP = character and character:FindFirstChild("HumanoidRootPart")
+    if not targetHRP then return end
+
 
 	-- asegurarnos HRP local existe
 	if not HRP or not HRP.Parent then
@@ -592,52 +601,125 @@ for _, v in ipairs(valid) do
 	react(player, id, v)
 end
 end
-
 -- === Monitorizado de jugadores y humanoids (limpieza de conexiones) ===
-local connections = {}
+local connections = {} -- clave: tostring(player.UserId)
 
 local function makeKeyForPlayer(player)
 	return tostring(player.UserId)
+end
+
+local function connectAnimatorToPlayer(key, character, animator, player, isLocal)
+	if not animator or not animator:IsA("Animator") then return end
+	-- evitar doble conexión si el Animator es el del Humanoid (lo manejamos con humanoid.AnimationPlayed)
+	if animator.Parent and animator.Parent:IsA("Humanoid") then return end
+
+	local conn = animator.AnimationPlayed:Connect(function(track)
+		-- pasamos 'character' como referencia del objetivo
+		onAnimationPlayed(track, character, isLocal, player)
+	end)
+
+	-- asegurar tabla
+	connections[key].animConns = connections[key].animConns or {}
+	table.insert(connections[key].animConns, conn)
 end
 
 local function monitorCharacter(player, character, isLocal)
 	if not player or not character then return end
 	local key = makeKeyForPlayer(player)
 
-	-- limpiar conexiÃ³n anterior si existe
-	if connections[key] and connections[key].animConn then
-		connections[key].animConn:Disconnect()
-		connections[key].animConn = nil
+	-- limpiar conexiones previas (si las hay)
+	if connections[key] then
+		-- desconectar todas las animConns previas
+		if connections[key].animConns then
+			for _, c in ipairs(connections[key].animConns) do
+				if c and c.Disconnect then pcall(c.Disconnect, c) end
+			end
+		end
+		-- desconectar childAdded / ancestry previos
+		if connections[key].childAddedConn then pcall(connections[key].childAddedConn.Disconnect, connections[key].childAddedConn) end
+		if connections[key].ancestryConn then pcall(connections[key].ancestryConn.Disconnect, connections[key].ancestryConn) end
 	end
 
-	-- esperar humanoid (no esperar demasiado)
+	-- inicializar estructura
+	connections[key] = connections[key] or {}
+	connections[key].animConns = {}
+
+	-- esperar humanoid (si no existe, esperar un poco)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then
 		humanoid = character:WaitForChild("Humanoid", 3)
-		if not humanoid then return end
+		if not humanoid then
+			-- aun si no hay Humanoid (caso raro), seguimos intentando detectar animators del modelo (p.ej. SharkDevil)
+		end
 	end
 
-	connections[key] = connections[key] or {}
-	connections[key].animConn = humanoid.AnimationPlayed:Connect(function(track)
-		onAnimationPlayed(track, humanoid, isLocal, player)
+	-- conectar AnimationPlayed del Humanoid (si existe)
+	if humanoid then
+		local hconn = humanoid.AnimationPlayed:Connect(function(track)
+			-- pasamos 'character' como referencia del objetivo
+			onAnimationPlayed(track, character, isLocal, player)
+		end)
+		table.insert(connections[key].animConns, hconn)
+	end
+
+	-- Conectar todos los Animator / AnimationController existentes dentro del character (p.ej. SharkDevil)
+	for _, obj in ipairs(character:GetDescendants()) do
+		if obj:IsA("AnimationController") then
+			local anim = obj:FindFirstChild("Animator")
+			if anim then
+				connectAnimatorToPlayer(key, character, anim, player, isLocal)
+			end
+		elseif obj:IsA("Animator") then
+			-- skip humanoid.Animator (lo evitamos dentro de connectAnimatorToPlayer)
+			connectAnimatorToPlayer(key, character, obj, player, isLocal)
+		end
+	end
+
+	-- escuchar ChildAdded para detectar transformaciones (p.ej. SharkDevil añadido)
+	connections[key].childAddedConn = character.ChildAdded:Connect(function(child)
+		-- si agregan un AnimationController, conectar su Animator cuando aparezca
+		if child:IsA("AnimationController") then
+			local anim = child:FindFirstChild("Animator") or child:WaitForChild("Animator", 2)
+			if anim then
+				connectAnimatorToPlayer(key, character, anim, player, isLocal)
+			end
+		-- si añaden un Animator directamente (poco usual), también conectamos
+		elseif child:IsA("Animator") then
+			connectAnimatorToPlayer(key, character, child, player, isLocal)
+		-- también revisar si un modelo como SharkDevil se añade con Animator dentro (o con AnimationController dentro)
+		else
+			-- revisar descendientes recién añadidos (un poco más caro pero seguro)
+			task.defer(function()
+				for _, d in ipairs(child:GetDescendants()) do
+					if d:IsA("AnimationController") then
+						local anim = d:FindFirstChild("Animator")
+						if anim then connectAnimatorToPlayer(key, character, anim, player, isLocal) end
+					elseif d:IsA("Animator") then
+						connectAnimatorToPlayer(key, character, d, player, isLocal)
+					end
+				end
+			end)
+		end
 	end)
 
-	-- limpiar cuando el character se pierde
-	if connections[key].ancestryConn then
-		connections[key].ancestryConn:Disconnect()
-	end
+	-- limpiar cuando el character se pierde (ancestry)
 	connections[key].ancestryConn = character.AncestryChanged:Connect(function(_, parent)
 		if not parent then
-			if connections[key] and connections[key].animConn then
-				connections[key].animConn:Disconnect()
+			-- desconectar todo
+			if connections[key] then
+				if connections[key].animConns then
+					for _, c in ipairs(connections[key].animConns) do
+						if c and c.Disconnect then pcall(c.Disconnect, c) end
+					end
+				end
+				if connections[key].childAddedConn then pcall(connections[key].childAddedConn.Disconnect, connections[key].childAddedConn) end
+				if connections[key].ancestryConn then pcall(connections[key].ancestryConn.Disconnect, connections[key].ancestryConn) end
+				connections[key] = nil
 			end
-			if connections[key] and connections[key].ancestryConn then
-				connections[key].ancestryConn:Disconnect()
-			end
-			connections[key] = nil
 		end
 	end)
 end
+
 
 -- Conectar a jugadores existentes
 for _, player in ipairs(Players:GetPlayers()) do
@@ -665,13 +747,20 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-	local key = makeKeyForPlayer(player)
-	if connections[key] then
-		if connections[key].animConn then connections[key].animConn:Disconnect() end
-		if connections[key].ancestryConn then connections[key].ancestryConn:Disconnect() end
-		connections[key] = nil
-	end
+    local key = makeKeyForPlayer(player)
+    if connections[key] then
+        -- desconectar todas animConns guardadas
+        if connections[key].animConns then
+            for _, c in ipairs(connections[key].animConns) do
+                pcall(function() c:Disconnect() end)
+            end
+        end
+        if connections[key].childAddedConn then pcall(function() connections[key].childAddedConn:Disconnect() end) end
+        if connections[key].ancestryConn then pcall(function() connections[key].ancestryConn:Disconnect() end) end
+        connections[key] = nil
+    end
 end)
+
 
 -- Escuchar al jugador local
 LocalPlayer.CharacterAdded:Connect(function(char)
