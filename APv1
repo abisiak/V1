@@ -152,9 +152,9 @@ local animationReactions = {
 --katanaman x1
 	["12536618082"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
 --Parykicks
-	["11412413067"] = { key = "m1", delay = 0.4, range = {min = 0, max = 30}, localAllowed = true , rv = false},
-	["11367862252"] = { key = "m1", delay = 0.4, range = {min = 0, max = 30}, localAllowed = true , rv = false},
-	["8544289138"] = { key = "m1", delay = 0.4, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["11412413067"] = { key = "m1", delay = 0.3, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["11367862252"] = { key = "m1", delay = 0.3, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["8544289138"] = { key = "m1", delay = 0.3, range = {min = 0, max = 30}, localAllowed = true , rv = false},
 -- ghost punch
 	["11805720948"] = { key = "Q", delay = 0.4, range = {min = 0, max = 28}, rv = false },
 --bomb X
