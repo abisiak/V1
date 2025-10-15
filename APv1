@@ -49,6 +49,8 @@ local animationReactions = {
 	["12483737431"] = { key = "F", delay = 0.2, range = {min = 0, max = 13} },
 --thermal x1
 	["15404604913"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
+--claw
+	["13487211959"] = { key = "F", delay = 0, range = {min = 0, max = 19}, rv = false},
 --thermal x2
 	["15404609840"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
 --thermal x3
@@ -152,9 +154,9 @@ local animationReactions = {
 --katanaman x1
 	["12536618082"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
 --Parykicks
-	["11412413067"] = { key = "m1", delay = 0.2, range = {min = 0, max = 30}, localAllowed = true , rv = false},
-	["11367862252"] = { key = "m1", delay = 0.2, range = {min = 0, max = 30}, localAllowed = true , rv = false},
-	["8544289138"] = { key = "m1", delay = 0.2, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["11412413067"] = { key = "m1", delay = 0, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["11367862252"] = { key = "m1", delay = 0, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["8544289138"] = { key = "m1", delay = 0, range = {min = 0, max = 30}, localAllowed = true , rv = false},
 -- ghost punch
 	["11805720948"] = { key = "Q", delay = 0.4, range = {min = 0, max = 28}, rv = false },
 --bomb X
@@ -269,7 +271,7 @@ local keyActions = {
 		remotes.toolremote:FireServer("Bang")
 	end,
         axe = function()
-		remotes.toolremote:FireServer("Axe Kick")
+		remotes.toolremote:FireServer("Claw Slash")
 	end,
 	m1 = function()
 		remotes.remote:FireServer("NormalAttack")
