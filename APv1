@@ -266,7 +266,7 @@ local keyActions = {
 		remotes.remote:FireServer("Skill1")
 	end,
 	k = function()
-		remotes.toolremote:FireServer("Ghost Hand Choke")
+		remotes.toolremote:FireServer("Bang")
 	end,
         axe = function()
 		remotes.toolremote:FireServer("Axe Kick")
