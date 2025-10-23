@@ -78,9 +78,9 @@ task.spawn(function()
     while true do
         if activarTP and player.Character and getRoot(player.Character) then
             local tpPosition
-            if nivel >= 20 and nivel <= 150 then
+            if nivel >= 20 and nivel <= 74 then
                 tpPosition = Vector3.new(-2619.74, 941.73, 449.21)
-            elseif nivel >= 15 and nivel <= 16 then
+            elseif nivel >= 75 and nivel <= 150 then
                 tpPosition = Vector3.new(-1887.75, 942.60, -760.72)
             end
             if tpPosition then
