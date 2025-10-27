@@ -493,7 +493,9 @@ local function isValidReaction(player, id, distance, isLocal, enemyHRP, config)
 	end
 
 	-- cooldown por jugador+id (mantengo tu clave original para compatibilidad)
-	local key = tostring(player.UserId) .. ":" .. id
+	local uid = (player and player.UserId) or ("NPC_" .. (player.Name or "Unknown"))
+        local key = tostring(uid) .. ":" .. id
+
 	if recentReactions[key] and tick() - recentReactions[key] < (config.delay or 0) then
 		return false
 	end
