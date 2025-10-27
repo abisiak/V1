@@ -726,6 +726,51 @@ local function monitorCharacter(player, character, isLocal)
 	end)
 end
 
+-- === Monitorizado de NPCs en workspace.Living ===
+local function monitorNPC(npc)
+	if not npc or not npc:IsA("Model") then return end
+	local npcName = npc.Name
+	if not (string.find(npcName, "Fiend") or string.find(npcName, "Devil") or string.find(npcName, "Yakuza") or string.find(npcName, "Hunter") or string.find(npcName, "Devil") or string.find(npcName, "Guy") or string.find(npcName, "Zombie")) then return end
+
+	local key = "NPC_" .. npcName
+	connections[key] = connections[key] or {}
+	connections[key].animConns = {}
+
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		local conn = humanoid.AnimationPlayed:Connect(function(track)
+			onAnimationPlayed(track, npc, false, npc) -- se usa npc como 'player' simbólico
+		end)
+		table.insert(connections[key].animConns, conn)
+	end
+
+	-- también revisar AnimationControllers
+	for _, obj in ipairs(npc:GetDescendants()) do
+		if obj:IsA("AnimationController") then
+			local anim = obj:FindFirstChild("Animator")
+			if anim then
+				local conn = anim.AnimationPlayed:Connect(function(track)
+					onAnimationPlayed(track, npc, false, npc)
+				end)
+				table.insert(connections[key].animConns, conn)
+			end
+		end
+	end
+
+	-- limpiar si el NPC muere o se borra
+	connections[key].ancestryConn = npc.AncestryChanged:Connect(function(_, parent)
+		if not parent then
+			if connections[key] then
+				for _, c in ipairs(connections[key].animConns) do
+					if c and c.Disconnect then pcall(c.Disconnect, c) end
+				end
+				if connections[key].ancestryConn then pcall(connections[key].ancestryConn.Disconnect, connections[key].ancestryConn) end
+				connections[key] = nil
+			end
+		end
+	end)
+end
+
 
 -- Conectar a jugadores existentes
 for _, player in ipairs(Players:GetPlayers()) do
@@ -739,6 +784,17 @@ for _, player in ipairs(Players:GetPlayers()) do
 		end)
 	end
 end
+-- Conectar a NPCs existentes en workspace.Living
+local LivingFolder = workspace:WaitForChild("Living")
+for _, npc in ipairs(LivingFolder:GetChildren()) do
+	monitorNPC(npc)
+end
+
+-- Detectar nuevos NPCs que aparezcan
+LivingFolder.ChildAdded:Connect(function(npc)
+	task.wait(0.5)
+	monitorNPC(npc)
+end)
 
 -- PlayerAdded/Removing
 Players.PlayerAdded:Connect(function(player)
