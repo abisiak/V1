@@ -5,7 +5,7 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 
 -- Variables
 local player = Players.LocalPlayer
-local ct = player:WaitForChild("PlayerGui"):WaitForChild("guis"):WaitForChild("CT")
+local ct = player:WaitForChild("PlayerGui"):WaitForChild("guis"):WaitForChild("RaidHint")
 local nivel = player:WaitForChild("Data"):WaitForChild("Level").Value
 
 -- Estados
