@@ -532,8 +532,23 @@ local function react(player, id, config)
 	local keyToUse = getEffectiveKey(id, config.key or config.reaction)
 
 	-- cooldown por jugador+id
-	local reactionKey = tostring(player.UserId) .. ":" .. id
-	recentReactions[reactionKey] = tick()
+-- cooldown por jugador+id (compatible con NPCs)
+local identifier = "unknown"
+
+if typeof(player) == "Instance" then
+	if player:IsA("Player") then
+		identifier = "PLR_" .. tostring(player.UserId)
+	elseif player:IsA("Model") then
+		identifier = "NPC_" .. (player.Name or "Unnamed")
+	else
+		identifier = "OBJ_" .. player.ClassName
+	end
+else
+	identifier = tostring(player)
+end
+
+local reactionKey = identifier .. ":" .. id
+recentReactions[reactionKey] = tick()
 
 	task.delay(config.delay or 0, function()
 		if keyToUse == "lock" then
@@ -621,8 +636,18 @@ end
 local connections = {} -- clave: tostring(player.UserId)
 
 local function makeKeyForPlayer(player)
-	return tostring(player.UserId)
+	if typeof(player) == "Instance" then
+		if player:IsA("Player") then
+			return "PLR_" .. tostring(player.UserId)
+		elseif player:IsA("Model") then
+			return "NPC_" .. (player.Name or "Unnamed")
+		else
+			return "OBJ_" .. player.ClassName
+		end
+	end
+	return tostring(player)
 end
+
 
 local function connectAnimatorToPlayer(key, character, animator, player, isLocal)
 	if not animator or not animator:IsA("Animator") then return end
