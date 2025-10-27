@@ -360,31 +360,16 @@ local cameraOffset = Vector3.new(5, 8, 15)
 local targetPlayer = nil
 local isLockOnActive = false
 
--- findClosestMatch ahora busca Players y modelos en workspace.Living
 local function findClosestMatch(name)
-    if not name or name == "" then return nil end
-    local query = name:lower()
-
-    -- 1) Buscar coincidencia entre players (prioridad a players)
-    for _, pl in pairs(Players:GetPlayers()) do
-        if pl ~= LocalPlayer and pl.Name:lower():sub(1, #query) == query then
-            return pl -- devolvemos el Player
-        end
-    end
-
-    -- 2) Buscar en workspace.Living (modelos / NPCs)
-    local living = workspace:FindFirstChild("Living")
-    if living then
-        for _, m in ipairs(living:GetChildren()) do
-            if m:IsA("Model") and type(m.Name) == "string" and m.Name:lower():sub(1, #query) == query then
-                return m -- devolvemos el Model (NPC)
-            end
-        end
-    end
-
-    return nil
+	if not name or name == "" then return nil end
+	name = name:lower()
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Name:lower():sub(1, #name) == name then
+			return player
+		end
+	end
+	return nil
 end
-
 
 local function activateLockByName(name, duration)
 	-- si no se pasa nombre, tomamos el contenido del LockTextBox
@@ -508,7 +493,7 @@ local function isValidReaction(player, id, distance, isLocal, enemyHRP, config)
 	end
 
 	-- cooldown por jugador+id (mantengo tu clave original para compatibilidad)
-	local key = makeKeyForPlayer(player) .. ":" .. id
+	local key = tostring(player.UserId) .. ":" .. id
 	if recentReactions[key] and tick() - recentReactions[key] < (config.delay or 0) then
 		return false
 	end
@@ -537,7 +522,7 @@ local function react(player, id, config)
 	local keyToUse = getEffectiveKey(id, config.key or config.reaction)
 
 	-- cooldown por jugador+id
-	local reactionKey = makeKeyForPlayer(player) .. ":" .. id
+	local reactionKey = tostring(player.UserId) .. ":" .. id
 	recentReactions[reactionKey] = tick()
 
 	task.delay(config.delay or 0, function()
@@ -623,51 +608,27 @@ for _, v in ipairs(valid) do
 end
 end
 -- === Monitorizado de jugadores y humanoids (limpieza de conexiones) ===
--- === Monitorizado de jugadores y humanoids (limpieza de conexiones) ===
-local connections = {} -- clave: generada dinámicamente según entidad
+local connections = {} -- clave: tostring(player.UserId)
 
--- Tabla para asignar IDs únicos a modelos/NPCs
-local entityIdMap = setmetatable({}, { __mode = "k" }) -- las claves débiles se limpian al eliminar el modelo
-local entityCounter = 0
-
-local function ensureEntityId(entity)
-	if not entity then return "nil" end
-	if entityIdMap[entity] then
-		return entityIdMap[entity]
-	end
-	entityCounter += 1
-	entityIdMap[entity] = tostring(entityCounter)
-	return entityIdMap[entity]
+local function makeKeyForPlayer(player)
+	return tostring(player.UserId)
 end
 
--- NUEVA función: ahora sirve tanto para Players como para NPCs
-local function makeKeyForPlayer(entity)
-	if not entity then
-		return "unknown"
-	end
-
-	if entity:IsA("Player") then
-		-- si es jugador, usamos su UserId
-		return "P:" .. tostring(entity.UserId)
-	else
-		-- si es modelo (NPC u otro tipo)
-		return "M:" .. ensureEntityId(entity) .. ":" .. (entity.Name or "Model")
-	end
-end
-
--- La función connectAnimatorToPlayer no necesita cambios aquí
-local function connectAnimatorToPlayer(key, character, animator, entity, isLocal)
+local function connectAnimatorToPlayer(key, character, animator, player, isLocal)
 	if not animator or not animator:IsA("Animator") then return end
-	-- evitar doble conexión si el Animator es del Humanoid (ya lo manejamos con humanoid.AnimationPlayed)
+	-- evitar doble conexión si el Animator es el del Humanoid (lo manejamos con humanoid.AnimationPlayed)
 	if animator.Parent and animator.Parent:IsA("Humanoid") then return end
 
 	local conn = animator.AnimationPlayed:Connect(function(track)
-		onAnimationPlayed(track, character, isLocal, entity)
+		-- pasamos 'character' como referencia del objetivo
+		onAnimationPlayed(track, character, isLocal, player)
 	end)
 
+	-- asegurar tabla
 	connections[key].animConns = connections[key].animConns or {}
 	table.insert(connections[key].animConns, conn)
 end
+
 local function monitorCharacter(player, character, isLocal)
 	if not player or not character then return end
 	local key = makeKeyForPlayer(player)
@@ -778,45 +739,6 @@ for _, player in ipairs(Players:GetPlayers()) do
 		end)
 	end
 end
-
--- === Conectar a NPCs / modelos en workspace.Living ===
-local livingFolder = workspace:FindFirstChild("Living")
-if livingFolder then
-    -- conectar a modelos ya presentes
-    for _, mdl in ipairs(livingFolder:GetChildren()) do
-        if mdl:IsA("Model") then
-            -- opcional: filtrar por nombre si quieres solo Fiend/Devil:
-            -- if string.find(mdl.Name, "Fiend") or string.find(mdl.Name, "Devil") then
-                -- monitorCharacter acepta ahora 'entity' que puede ser Player o Model
-                monitorCharacter(mdl, mdl, false)
-            -- end
-        end
-    end
-
-    -- observar añadidos futuros
-    livingFolder.ChildAdded:Connect(function(child)
-        if child:IsA("Model") then
-            monitorCharacter(child, child, false)
-        end
-    end)
-
-    -- si quieres, limpiar al quitar modelos:
-    livingFolder.ChildRemoved:Connect(function(child)
-        local key = makeKeyForPlayer(child)
-        if connections[key] then
-            -- desconectar y limpiar (similar a PlayerRemoving)
-            if connections[key].animConns then
-                for _, c in ipairs(connections[key].animConns) do
-                    pcall(function() c:Disconnect() end)
-                end
-            end
-            if connections[key].childAddedConn then pcall(function() connections[key].childAddedConn:Disconnect() end) end
-            if connections[key].ancestryConn then pcall(function() connections[key].ancestryConn:Disconnect() end) end
-            connections[key] = nil
-        end
-    end)
-end
-
 
 -- PlayerAdded/Removing
 Players.PlayerAdded:Connect(function(player)
