@@ -668,7 +668,7 @@ local function connectAnimatorToPlayer(key, character, animator, entity, isLocal
 	connections[key].animConns = connections[key].animConns or {}
 	table.insert(connections[key].animConns, conn)
 end
-nction monitorCharacter(player, character, isLocal)
+function monitorCharacter(player, character, isLocal)
 	if not player or not character then return end
 	local key = makeKeyForPlayer(player)
 
