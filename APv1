@@ -493,21 +493,26 @@ local function isValidReaction(player, id, distance, isLocal, enemyHRP, config)
 	end
 
 	-- cooldown por jugador+id (mantengo tu clave original para compatibilidad)
--- cooldown por jugador+id (usa nombre si no es Player real)
-local identifier
-if typeof(player) == "Instance" and player:IsA("Player") then
-	identifier = tostring(player.UserId)
-elseif typeof(player) == "Instance" and player:IsA("Model") then
-	identifier = "NPC_" .. player.Name
+	-- cooldown por jugador+id (compatible con NPCs)
+local identifier = "unknown"
+
+-- intentar detectar si es Player o NPC
+if typeof(player) == "Instance" then
+	if player:IsA("Player") then
+		identifier = "PLR_" .. tostring(player.UserId)
+	elseif player:IsA("Model") then
+		identifier = "NPC_" .. (player.Name or "Unnamed")
+	else
+		identifier = "OBJ_" .. player.ClassName
+	end
 else
 	identifier = tostring(player)
 end
+
 local key = identifier .. ":" .. id
-
-
-	if recentReactions[key] and tick() - recentReactions[key] < (config.delay or 0) then
-		return false
-	end
+if recentReactions[key] and tick() - recentReactions[key] < (config.delay or 0) then
+	return false
+end
 
 	-- visiÃ³n angular
 	if config.rv ~= false and distance >= 2 then
