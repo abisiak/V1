@@ -146,7 +146,7 @@ local animationReactions = {
 --katana m2
 	["8179748204"] = { key = "F", delay = 0.3, range = {min = 0, max = 23} },
 --katanaman m2
-	["11718800360"] = { key = "F", delay = 0.3, range = {min = 0, max = 80} },
+	["11718800360"] = { key = "F", delay = 0.45, range = {min = 0, max = 80} },
 --katanaman x?
 	["12536641543"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
 --katanaman x?
