@@ -146,7 +146,7 @@ local animationReactions = {
 --katana m2
 	["8179748204"] = { key = "F", delay = 0.3, range = {min = 0, max = 23} },
 --katanaman m2
-	["11718800360"] = { key = "F", delay = 0.45, range = {min = 0, max = 80} },
+	["11718800360"] = { key = "F", delay = 0.54, range = {min = 0, max = 80} },
 --katanaman x?
 	["12536641543"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
 --katanaman x?
@@ -331,10 +331,21 @@ APButton.Font = Enum.Font.SourceSansBold
 APButton.TextSize = 20
 APButton.BorderSizePixel = 0
 
+-- función para actualizar apariencia
+local function updateAPButton()
+	APButton.Text = "Auto-parry: " .. (autoParryEnabled and "ON" or "OFF")
+	APButton.BackgroundColor3 = autoParryEnabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(150,0,0)
+end
+
+-- inicializar correctamente al inicio
+updateAPButton()
+
+-- al presionar, cambia el estado
 APButton.MouseButton1Click:Connect(function()
 	autoParryEnabled = not autoParryEnabled
-	APButton.Text = "Auto-parry: " .. (autoParryEnabled and "ON" or "OFF")
-	APButton.BackgroundColor3 = autoParryEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+	updateAPButton()
+	-- opcional: print("[AutoParry] Estado:", autoParryEnabled)
+end)
 	-- opcional: debug
 	-- print("[AutoParry] Estado cambiado a:", autoParryEnabled)
 end)
