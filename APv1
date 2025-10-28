@@ -318,8 +318,6 @@ LockButton.Text = "🔍 Lock-On OFF"
 LockButton.Parent = screenGui
 
 -- Auto-parry toggle (arriba derecha)
--- Estado inicial del auto-parry (true = activo al iniciar, false = apagado)
-local autoParryEnabled = true
 local APButton = Instance.new("TextButton")
 APButton.Parent = screenGui
 APButton.Size = UDim2.new(0, 140, 0, 38)
@@ -331,21 +329,10 @@ APButton.Font = Enum.Font.SourceSansBold
 APButton.TextSize = 20
 APButton.BorderSizePixel = 0
 
--- función para actualizar apariencia
-local function updateAPButton()
-	APButton.Text = "Auto-parry: " .. (autoParryEnabled and "ON" or "OFF")
-	APButton.BackgroundColor3 = autoParryEnabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(150,0,0)
-end
-
--- inicializar correctamente al inicio
-updateAPButton()
-
--- al presionar, cambia el estado
 APButton.MouseButton1Click:Connect(function()
 	autoParryEnabled = not autoParryEnabled
-	updateAPButton()
-	-- opcional: print("[AutoParry] Estado:", autoParryEnabled)
-end)
+	APButton.Text = "Auto-parry: " .. (autoParryEnabled and "ON" or "OFF")
+	APButton.BackgroundColor3 = autoParryEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
 	-- opcional: debug
 	-- print("[AutoParry] Estado cambiado a:", autoParryEnabled)
 end)
