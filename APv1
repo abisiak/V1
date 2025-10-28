@@ -318,6 +318,7 @@ LockButton.Text = "🔍 Lock-On OFF"
 LockButton.Parent = screenGui
 
 -- Auto-parry toggle (arriba derecha)
+local autoParryEnabled = true  -- aquí decides si inicia activado o no
 local APButton = Instance.new("TextButton")
 APButton.Parent = screenGui
 APButton.Size = UDim2.new(0, 140, 0, 38)
