@@ -570,10 +570,9 @@ recentReactions[reactionKey] = tick()
 	end)
 end
 
-_G.autoParryEnabled = autoParryEnabled
 
 local function onAnimationPlayed(track, owner, isLocal, player)
-    if not _G.autoParryEnabled then return end
+    if not autoParryEnabled then return end
     if not track or not track.Animation or not track.Animation.AnimationId then return end
 
     local id = track.Animation.AnimationId:match("%d+")
