@@ -287,7 +287,7 @@ local keyActions = {
 
 -- Cooldowns por jugador+id (manteniéndose compatible)
 local recentReactions = {}
-local isAutoParryEnabled = true -- ← único nombre coherente
+local AutoParryEnabled = true -- ← único nombre coherente
 
 local function getMaxAngleForDistance(distance)
 	if distance < 1.5 then return 180 end -- skip
@@ -330,9 +330,11 @@ APButton.TextSize = 20
 APButton.BorderSizePixel = 0
 
 APButton.MouseButton1Click:Connect(function()
-	isAutoParryEnabled = not isAutoParryEnabled
-	APButton.Text = "Auto-parry: " .. (isAutoParryEnabled and "ON" or "OFF")
-	APButton.BackgroundColor3 = isAutoParryEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+	autoParryEnabled = not autoParryEnabled
+	APButton.Text = "Auto-parry: " .. (autoParryEnabled and "ON" or "OFF")
+	APButton.BackgroundColor3 = autoParryEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+	-- opcional: debug
+	-- print("[AutoParry] Estado cambiado a:", autoParryEnabled)
 end)
 
 -- Lock-on internals
