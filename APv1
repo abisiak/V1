@@ -285,9 +285,9 @@ local keyActions = {
 	end,
 }
 
--- Cooldowns por jugador+id (manteniÃ©ndose compatible)
+-- Cooldowns por jugador+id (manteniéndose compatible)
 local recentReactions = {}
-local autoParryEnabled = true
+local isAutoParryEnabled = true -- ← único nombre coherente
 
 local function getMaxAngleForDistance(distance)
 	if distance < 1.5 then return 180 end -- skip
@@ -314,7 +314,7 @@ LockTextBox.Parent = screenGui
 local LockButton = Instance.new("TextButton")
 LockButton.Size = UDim2.new(0, 200, 0, 30)
 LockButton.Position = UDim2.new(0, 10, 0, 50)
-LockButton.Text = "ðŸ“ Lock-On OFF"
+LockButton.Text = "🔍 Lock-On OFF"
 LockButton.Parent = screenGui
 
 -- Auto-parry toggle (arriba derecha)
@@ -330,9 +330,9 @@ APButton.TextSize = 20
 APButton.BorderSizePixel = 0
 
 APButton.MouseButton1Click:Connect(function()
-	autoParryEnabled = not autoParryEnabled
-	APButton.Text = "Auto-parry: " .. (autoParryEnabled and "ON" or "OFF")
-	APButton.BackgroundColor3 = autoParryEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+	isAutoParryEnabled = not isAutoParryEnabled
+	APButton.Text = "Auto-parry: " .. (isAutoParryEnabled and "ON" or "OFF")
+	APButton.BackgroundColor3 = isAutoParryEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
 end)
 
 -- Lock-on internals
