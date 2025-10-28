@@ -146,7 +146,7 @@ local animationReactions = {
 --katana m2
 	["8179748204"] = { key = "F", delay = 0.3, range = {min = 0, max = 23} },
 --katanaman m2
-	["11718800360"] = { key = "F", delay = 0.3, range = {min = 0, max = 80} },
+	["11718800360"] = { key = "F", delay = 0.45, range = {min = 0, max = 80} },
 --katanaman x?
 	["12536641543"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
 --katanaman x?
@@ -318,6 +318,8 @@ LockButton.Text = "🔍 Lock-On OFF"
 LockButton.Parent = screenGui
 
 -- Auto-parry toggle (arriba derecha)
+-- Estado inicial del auto-parry (true = activo al iniciar, false = apagado)
+local autoParryEnabled = true
 local APButton = Instance.new("TextButton")
 APButton.Parent = screenGui
 APButton.Size = UDim2.new(0, 140, 0, 38)
