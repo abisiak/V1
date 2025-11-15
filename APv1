@@ -903,3 +903,81 @@ end
 hookRemotes()
 
 -- FIN del script
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Variables
+local player = Players.LocalPlayer
+local remoteEvent = ReplicatedStorage:WaitForChild("events"):WaitForChild("remote")
+local autoDashEnabled = false
+local isDashing = false
+local dashDelay = 0.1
+local idleThreshold = 1
+
+-- Referencia dinámica al HRP
+local currentHRP = nil
+
+-- Crear GUI (una sola vez)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Name = "AutoDashGui"
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 30, 0, 30)
+ToggleButton.Position = UDim2.new(0, 10, 0, 72)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Text = ""
+ToggleButton.AutoButtonColor = true
+ToggleButton.Parent = ScreenGui
+
+-- Función: Lanzar dash
+local function fireDash()
+	local args = { "Dash", "" }
+	remoteEvent:FireServer(unpack(args))
+end
+
+-- Función: Detectar si está quieto
+local function isIdle()
+	if not currentHRP then return false end
+	return currentHRP.Velocity.Magnitude < idleThreshold
+end
+
+-- Heartbeat: lógica automática
+RunService.Heartbeat:Connect(function()
+	if not autoDashEnabled then return end
+	if not currentHRP then return end
+
+	if isIdle() and not isDashing then
+		isDashing = true
+		task.spawn(function()
+			while isDashing and isIdle() and autoDashEnabled do
+				fireDash()
+				task.wait(dashDelay)
+			end
+			isDashing = false
+		end)
+	elseif not isIdle() then
+		isDashing = false
+	end
+end)
+
+-- Click del botón
+ToggleButton.MouseButton1Click:Connect(function()
+	autoDashEnabled = not autoDashEnabled
+	ToggleButton.BackgroundColor3 = autoDashEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+-- Actualizar HRP al reaparecer
+local function updateCharacterReferences()
+	local character = player.Character or player.CharacterAdded:Wait()
+	currentHRP = character:WaitForChild("HumanoidRootPart")
+end
+
+-- Detectar cambios de personaje
+player.CharacterAdded:Connect(updateCharacterReferences)
+
+-- Primera ejecución
+updateCharacterReferences()
