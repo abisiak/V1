@@ -1,0 +1,150 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui", PlayerGui)
+ScreenGui.ResetOnSpawn = false
+
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0, 200, 0, 30)
+TextBox.Position = UDim2.new(0, 10, 0, 10)
+TextBox.PlaceholderText = "Nombre del jugador"
+TextBox.Parent = ScreenGui
+
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.new(0, 200, 0, 30)
+Button.Position = UDim2.new(0, 10, 0, 50)
+Button.Text = "📍 Lock-On OFF"
+Button.Parent = ScreenGui
+
+-- Variables del lock-on
+local camera = workspace.CurrentCamera
+local cameraOffset = Vector3.new(5, 8, 15)
+local targetPlayer = nil
+local isLockOnActive = false
+
+-- Buscar jugador por coincidencia
+local function findClosestMatch(name)
+	name = name:lower()
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Name:lower():sub(1, #name) == name then
+			return player
+		end
+	end
+	return nil
+end
+
+-- Botón toggle
+Button.MouseButton1Click:Connect(function()
+	local nameInput = TextBox.Text
+	if not isLockOnActive then
+		local foundPlayer = findClosestMatch(nameInput)
+		if foundPlayer then
+			targetPlayer = foundPlayer
+			isLockOnActive = true
+			Button.Text = "❌ Lock-On ON"
+			print("Lock-On activado en", targetPlayer.Name)
+		else
+			warn("No se encontró un jugador con ese nombre.")
+		end
+	else
+		isLockOnActive = false
+		targetPlayer = nil
+		Button.Text = "📍 Lock-On OFF"
+		print("Lock-On desactivado")
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if isLockOnActive 
+		and targetPlayer 
+		and targetPlayer.Character 
+		and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+		and LocalPlayer.Character 
+		and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+
+		local root = LocalPlayer.Character.HumanoidRootPart
+		local targetRoot = targetPlayer.Character.HumanoidRootPart
+
+		-- Rotación del personaje hacia el objetivo (horizontal)
+		local targetPos = targetRoot.Position
+		local selfPos = root.Position
+		local direction = (Vector3.new(targetPos.X, selfPos.Y, targetPos.Z) - selfPos).Unit
+		root.CFrame = CFrame.new(selfPos, selfPos + direction)
+
+		-- Cámara con offset
+		local camPos = root.Position + (root.CFrame:VectorToWorldSpace(cameraOffset))
+		camera.CFrame = CFrame.new(camPos, targetRoot.Position)
+	else
+		-- Si targetPlayer ya no es válido, apaga el lock-on automáticamente
+		if isLockOnActive then
+			warn("Lock-On desactivado automáticamente (jugador ya no válido)")
+			isLockOnActive = false
+			targetPlayer = nil
+			Button.Text = "📍 Lock-On OFF"
+		end
+	end
+end)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local remote = ReplicatedStorage:WaitForChild("events"):WaitForChild("remote")
+
+-- Ruta al original
+local gui = player.PlayerGui:WaitForChild("MobileGui"):WaitForChild("Frame"):WaitForChild("Z")
+local originalIcon = gui:WaitForChild("ActionIcon")
+
+-- Ocultar el icono original (ImageLabel)
+originalIcon.Visible = false
+
+-- Crear botón visualmente igual
+local button = Instance.new("ImageButton")
+button.Name = "ActionIcon_Button"
+button.Size = originalIcon.Size
+button.Position = originalIcon.Position
+button.AnchorPoint = originalIcon.AnchorPoint
+button.Image = originalIcon.Image
+button.BackgroundColor3 = originalIcon.BackgroundColor3
+button.BackgroundTransparency = originalIcon.BackgroundTransparency
+button.ImageTransparency = originalIcon.ImageTransparency
+button.Parent = gui
+
+-- Copiar cualquier TextLabel interno (si lo hay)
+local label = originalIcon:FindFirstChildWhichIsA("TextLabel")
+if label then
+	local newLabel = label:Clone()
+	newLabel.Parent = button
+end
+
+-- Función para lanzar la cadena
+local function getFixedAimData()
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root then return nil end
+
+	if isLockOnActive and targetPlayer and targetPlayer.Character then
+		local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+		if targetRoot then
+			local direction = (targetRoot.Position - root.Position).Unit
+local distance = 300 -- qué tan lejos llega la cadena
+local raycastPos = root.Position + direction * distance
+local cf = CFrame.lookAt(root.Position, raycastPos)
+return raycastPos, workspace, cf
+		end
+	end
+
+	return nil
+end
+
+-- Conectar el botón nuevo
+button.MouseButton1Click:Connect(function()
+	local pos, target, cf = getFixedAimData()
+	if pos and target and cf then
+		remote:FireServer("Skill2", pos, target, cf)
+	else
+		warn("No se pudo lanzar cadenas: sin objetivo lock-on válido.")
+	end
+end)
