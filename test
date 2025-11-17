@@ -1,0 +1,1071 @@
+-- Auto-parry + Lock-On (LocalScript) - LIMPIO (sin GUI)
+-- Conserva conexiones, detección de animaciones y lock-on (controlable por código).
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- =====================
+-- Config (editable desde GUI / módulo externo)
+-- =====================
+local Config = {
+    -- toggle
+    autoParryEnabled = true,
+    autoAttackEnabled = true,
+    -- camera offset relativo al character cuando está locked (X = derecha, Y = arriba, Z = atrás)
+    cameraOffset = Vector3.new(3, 8, 15),
+
+    -- redirect R -> F para ciertas animaciones
+    redirectRtoF = false,
+    redirectAnimations = {
+        ["11412048186"] = true,
+        ["854420980"] = true,
+        ["8544209804"] = true,
+        ["11367425425"] = true,
+    },
+
+    -- función para ángulo máximo según distancia (ajustable)
+    getMaxAngleForDistance = function(distance)
+        if distance < 1.5 then return 180 end
+        if distance < 5 then return 75 end
+        if distance < 10 then return 75 end
+        if distance < 15 then return 90 end
+        if distance < 25 then return 150 end
+        return 170
+    end,
+}
+
+-- =====================
+-- Servicios / Remotes
+-- =====================
+local eventsFolder = ReplicatedStorage:WaitForChild("events")
+local remotes = {
+    remote = eventsFolder:WaitForChild("remote"),
+    toolremote = eventsFolder:WaitForChild("toolremote"),
+}
+
+-- =====================
+-- Helpers
+-- =====================
+local clamp = math.clamp or function(x, a, b) return math.max(a, math.min(b, x)) end
+
+local function makeIdentifier(obj)
+    if typeof(obj) == "Instance" then
+        if obj:IsA("Player") then
+            return "PLR_" .. tostring(obj.UserId)
+        elseif obj:IsA("Model") then
+            return "NPC_" .. (obj.Name or "Unnamed")
+        else
+            return "OBJ_" .. obj.ClassName
+        end
+    end
+    return tostring(obj)
+end
+
+local function safeGetHRP(character)
+    if not character then return nil end
+    return character:FindFirstChild("HumanoidRootPart")
+end
+
+local function isModelHybrid(modelOrPlayer)
+    if typeof(modelOrPlayer) == "Instance" and modelOrPlayer:IsA("Player") then
+        local char = modelOrPlayer.Character
+        if char then
+            local st = char:FindFirstChild("states") or modelOrPlayer:FindFirstChild("states")
+            if st and st:FindFirstChild("Transformed") then return true end
+        end
+        local stp = modelOrPlayer:FindFirstChild("states")
+        if stp and stp:FindFirstChild("Transformed") then return true end
+        return false
+    end
+
+    if typeof(modelOrPlayer) == "Instance" and modelOrPlayer:IsA("Model") then
+        local st = modelOrPlayer:FindFirstChild("states")
+        if st and st:FindFirstChild("Transformed") then return true end
+        return false
+    end
+
+    return false
+end
+
+local function getCharacterFromOwner(owner)
+    if not owner then return nil end
+    if typeof(owner) == "Instance" then
+        if owner:IsA("Humanoid") and owner.Parent then
+            return owner.Parent
+        elseif owner:IsA("Model") then
+            return owner
+        elseif owner:IsA("Animator") and owner.Parent then
+            local maybeHum = owner.Parent
+            if maybeHum and maybeHum:IsA("Humanoid") and maybeHum.Parent then
+                return maybeHum.Parent
+            end
+            return owner:FindFirstAncestorOfClass("Model")
+        end
+    end
+    return nil
+end
+
+-- =====================
+-- Reactions table (tu config original)
+-- =====================
+local animationReactions = {
+        --kon     
+	["12177079842"] = { key = "hammer", delay = 0, range = {min = 10, max = 50} },
+        --scyte(normal)
+	["12505816013"] = { key = "F", delay = 0, range = {min = 0, max = 23}, rv = false },
+--knife E
+	["7568108641"] = { key = "F", delay = 0, range = {min = 0, max = 15}, rv = false },
+-- axe kick
+	["12483737431"] = { key = "F", delay = 0.2, range = {min = 0, max = 13} },
+--thermal x1
+	["15404604913"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
+--claw
+	["13487211959"] = { key = "F", delay = 0, range = {min = 0, max = 19}, rv = false},
+--thermal x2
+	["15404609840"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
+--thermal x3
+	["15404615382"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
+--katana m2
+	["8179748204"] = { key = "F", delay = 0.3, range = {min = 0, max = 23}, rv = false },
+--karambit x1
+	["15414582390"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--karambit x2
+	["15414585949"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--karambit x3
+	["15430111795"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--fists x1
+	["12373722677"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--fists x2
+	["12373744698"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--fists x3
+	["12374008952"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--fists x4
+	["12690107981"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
+--deep sea x1
+	["16024193549"] = { key = "F", delay = 0, range = {min = 0, max = 11} },
+--deep sea x2
+	["16024282314"] = { key = "F", delay = 0, range = {min = 0, max = 11} },
+--deep sea x3
+	["16024897725"] = { key = "F", delay = 0, range = {min = 0, max = 11} },
+--chainsaw x1
+	["12539917297"] = { key = "F", delay = 0, range = {min = 0, max = 11} },
+--chainsaw x2
+	["12539924939"] = { key = "F", delay = 0, range = {min = 0, max = 11} },
+--chainsaw x3
+	["12539907543"] = { key = "F", delay = 0, range = {min = 0, max = 11} },
+--bomb x3
+	["12539896513"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
+--shark r
+["108740270242172"] = { key = "Q", delay = 0, range = {min = 0, max = 40}, rv = false },
+--shark chaw
+	["130481997116962"] = { key = "F", delay = 0, range = {min = 1, max = 27}, rv = false },
+--bomb x?
+	["12641658796"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
+--bomb x?
+	["12641656228"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
+--chainsaw m2
+	["11916882700"] = { key = "F", delay = 0.2, range = {min = 1, max = 27}, rv = false },
+--chainsaw Z
+	["12630461862"] = { key = "F", delay = 0.4, range = {min = 0, max =170} },
+--axe x1
+	["12694331871"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.5}, rv = false },
+--knife/karambit m2
+	["7393178909"] = { key = "F", delay = 0, range = {min = 0, max = 12} },
+--axe x2
+	["12694448884"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.5}, rv = false },
+--deep sea E
+	["16033074314"] = { key = "Q", delay = 0.1, range = {min = 0, max = 15} },
+--axe x3
+	["12702771654"] = { key = "F", delay = 0.2, range = {min = 0, max = 9.5} },
+--axe x4
+	["12703011805"] = { key = "F", delay = 0.2, range = {min = 0, max = 9.5} },
+--axe m2
+	["12702972513"] = { key = "F", delay = 0.2, range = {min = 0, max = 9.5} },
+--sledgehammer x1
+	["15430188883"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.5} },
+--sledgehammer x2
+	["15430192542"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.6} },
+--sledgehammer x3
+	["15430196462"] = { key = "F", delay = 0.1, range = {min = 0, max = 9.6} },
+--sledgehammer m2
+	["15581919407"] = { key = "F", delay = 0.2, range = {min = 0, max = 10}, rv = false },
+--axe E
+	["15050129951"] = { key = "Q", delay = 0, range = {min = 0, max = 15}, rv = false },
+--choke
+	["11740370682"] = { key = "Q", delay = 0, range = {min = 0, max = 30}, rv = false },
+--katana x1
+	["8121978139"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--katana x2
+	["8122021891"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--katana x3
+	["8122080110"] = { key = "F", delay = 0, range = {min = 0, max = 11.5} },
+--katana E
+	["12266569143"] = { key = "Q", delay = 0.2, range = {min = 0, max = 18}, rv = false },
+-- nail m2
+	["11725550905"] = { key = "F", delay = 0.2, range = {min = 0, max = 25} },
+-- nail x1
+	["12196524051"] = { key = "F", delay = 0, range = {min = 0, max = 17} },
+--nail x2
+	["12196677030"] = { key = "F", delay = 0, range = {min = 0, max = 16} },
+--nail x3
+	["12196631889"] = { key = "F", delay = 0, range = {min = 0, max = 16} },
+--katanaman z
+	["12583743676"] = { key = "F", delay = 0.3, range = {min = 0, max = 23}, rv = false },
+--chainsaw E
+	["12164877686"] = { key = "Q", delay = 0.3, range = {min = 0, max = 100}, rv = false },
+--katana m2
+	["8179748204"] = { key = "F", delay = 0.3, range = {min = 0, max = 23} },
+--katanaman m2
+	["11718800360"] = { key = "F", delay = 0.54, range = {min = 0, max = 80} },
+--katanaman x?
+	["12536641543"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--katanaman x?
+	["12536648018"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--katanaman x1
+	["12536618082"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+--Parykicks
+	["11412413067"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["11367862252"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["8544289138"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+-- ghost punch
+	["11805720948"] = { key = "Q", delay = 0.4, range = {min = 0, max = 28}, rv = false },
+--bomb X
+	["14990664859"] = { key = "F", delay = 0, range = {min = 0, max = 60}, rv = false },
+--m2 fits
+	["6819033860"] = { key = "F", delay = 0.1, range = {min = 0, max = 12.5}, rv = false },
+        ["6819010188"] = { key = "F", delay = 0.1, range = {min = 0, max = 12.5}, rv = false },
+        ["6819068355"] = { key = "F", delay = 0.1, range = {min = 0, max = 12.5}, rv = false },
+--E fists
+        ["12258987934"] = { key = "Q", delay = 0, range = {min = 0, max = 12.5}, rv = false },
+	-- hammer
+	["12502854533"] = { key = "Q", delay = 0.7, range = {min = 8, max = 45} },
+
+	-- thunder
+	["140319778701762"] = { key = "Q", delay = 0.3, range = {min = 0, max = 35}, rv = false },
+
+	-- feather
+	["133128238639970"] = { key = "F", delay = 0.2, range = {min = 0, max = 30}, rv = false },
+
+	-- angel blast
+	["75241769652180"] = { key = "Q", delay = 0.3, range = {min = 10, max = 58}, rv = false },
+
+	-- shark bite
+	["15503208663"] = { key = "F", delay = 0, range = {min = 0, max = 13} },
+
+	-- axe kickV
+	["13288894402"] = { key = "F", delay = 0.3, range = {min = 0, max = 35} },
+	
+	-- chain
+	["121804333140421"] = { key = "F", delay = 0.2, range = {min = 0, max = 50}, rv = false },
+
+	-- shield m1x1
+	["87443479643080"] = { key = "F", delay = 0.2, range = {min = 0, max = 12} },
+
+	-- shield m1x2
+	["117849900104484"] = { key = "F", delay = 0.2, range = {min = 0, max = 12} },
+
+	-- shield m1x3
+	["79984916073099"] = { key = "F", delay = 0.2, range = {min = 0, max = 12} },
+	-- Bang ðŸ‘»
+	["88991840508105"] = { key = "k", delay = 0, range = {min = 0, max = 11}, rv = false },
+
+	-- R shield
+	["126438176215231"] = { key = "Q", delay = 0.1, range = {min = 0, max = 35}, rv = false },
+}
+
+animationReactions["11412048186"] = {
+    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true },
+    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true },
+}
+animationReactions["854420980"] = {
+    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true  },  
+    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
+}
+animationReactions["8544209804"] = {
+    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true  },
+    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
+}
+
+animationReactions["11367425425"] = {
+    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true  },
+    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
+}
+
+animationReactions["5502444144"] = {
+    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true, editable = true  },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true, editable = true  },
+    { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true, editable = true  },
+}
+
+animationReactions["5502635805"] = {
+    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true, editable = true  },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true, editable = true  },
+  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true, editable = true  },
+}
+
+animationReactions["5502286572"] = {
+    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true, editable = true  },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false },
+  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true, editable = true  },
+}
+
+animationReactions["5502543898"] = {
+    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true, editable = true  },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true, editable = true  },
+  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true, editable = true  },
+}
+
+-- =====================
+-- Key actions
+-- =====================
+local keyActions = {
+    F = function() remotes.remote:FireServer("Parry") end,
+    Q = function() remotes.remote:FireServer("Dash", "W", "NoTorsoRotate") end,
+    R = function() remotes.remote:FireServer("StrongAttack") end,
+    E = function() remotes.remote:FireServer("Skill1") end,
+    k = function() remotes.toolremote:FireServer("Ghot Hand Punch") end,
+    axe = function() remotes.toolremote:FireServer("Claw Slash") end,
+    m1 = function()
+        remotes.remote:FireServer("NormalAttack")
+        Config.redirectRtoF = true
+        task.delay(0.5, function() Config.redirectRtoF = false end)
+    end,
+    hammer = function() remotes.toolremote:FireServer("Blood Hammer Slam") end,
+}
+
+-- =====================
+-- State
+-- =====================
+local recentReactions = {} -- cooldown tracker
+local connections = {} -- limpieza de conexiones por key
+
+-- =====================
+-- Lock-on internals (sin GUI)
+-- =====================
+local camera = workspace.CurrentCamera
+local targetPlayer = nil
+local isLockOnActive = false
+
+local function findClosestMatch(name)
+    if not name or name == "" then return nil end
+    name = name:lower()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Name:lower():sub(1, #name) == name then
+            return player
+        end
+    end
+    return nil
+end
+
+local function setLockState(active, found)
+    isLockOnActive = active
+    targetPlayer = active and found or nil
+    -- cuando se desactiva, forzamos refresh de CameraSubject para evitar problemas (shiftlock)
+    if not active then
+        task.spawn(function()
+            pcall(function()
+                local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    camera.CameraSubject = nil
+                    task.wait()
+                    camera.CameraSubject = humanoid
+                end
+            end)
+        end)
+    end
+end
+
+local function activateLockByName(name, duration)
+    -- ahora NO depende de una TextBox; debe pasarse 'name' desde fuera.
+    if not name or name == "" then return end
+    local found = findClosestMatch(name)
+    if not found then return end
+    setLockState(true, found)
+    task.delay(duration or 1.5, function()
+        if isLockOnActive and targetPlayer == found then
+            setLockState(false)
+        end
+    end)
+end
+
+local function deactivateLock()
+    setLockState(false)
+end
+
+RunService.RenderStepped:Connect(function()
+    if isLockOnActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local root = LocalPlayer.Character.HumanoidRootPart
+        local targetRoot = targetPlayer.Character.HumanoidRootPart
+
+        local targetPos = targetRoot.Position
+        local selfPos = root.Position
+        local dir = Vector3.new(targetPos.X - selfPos.X, 0, targetPos.Z - selfPos.Z)
+        if dir.Magnitude > 0 then
+            local lookCFrame = CFrame.new(selfPos, selfPos + dir.Unit)
+            local _, y, _ = lookCFrame:ToOrientation()
+            root.CFrame = CFrame.new(selfPos) * CFrame.Angles(0, y, 0)
+        end
+
+        -- cámara con offset relativo al root (usa Config.cameraOffset)
+        local camPos = root.Position + (root.CFrame:VectorToWorldSpace(Config.cameraOffset))
+        camera.CFrame = CFrame.new(camPos, targetRoot.Position)
+    else
+        if isLockOnActive then
+            setLockState(false)
+        end
+    end
+end)
+
+-- =====================
+-- Reaction validation + execution
+-- =====================
+local function getEffectiveKey(id, originalKey)
+    if Config.redirectRtoF and originalKey == "R" and Config.redirectAnimations[id] then
+        return "F"
+    end
+    return originalKey
+end
+
+-- Reemplaza la función isValidReaction por esta
+local function isValidReaction(playerObj, id, distance, isLocal, enemyHRP, cfg)
+    if not cfg then return false end
+
+    -- Si la animación viene del jugador local: sólo permitirla si cfg.localAllowed == true
+    if isLocal then
+        if not cfg.localAllowed then
+            return false
+        end
+        -- si cfg.localAllowed == true, seguimos validando el resto de checks
+    end
+
+    -- Si la animación viene de otro (no-local) y cfg.localAllowed == false, NO afecta: seguimos normalmente
+
+    if not LocalPlayer or not LocalPlayer.Character then return false end
+    if not enemyHRP or not enemyHRP.Parent then return false end
+
+    local rmin = (cfg.range and cfg.range.min) or 0
+    local rmax = (cfg.range and cfg.range.max) or math.huge
+    if distance < rmin or distance > rmax then return false end
+
+    if cfg.state then
+        local targetHybrid = false
+        if typeof(playerObj) == "Instance" then
+            targetHybrid = isModelHybrid(playerObj)
+        end
+        if cfg.state == "hybrid" and not targetHybrid then return false end
+        if cfg.state == "human" and targetHybrid then return false end
+    end
+
+    local identifier = makeIdentifier(playerObj)
+    local key = identifier .. ":" .. tostring(id)
+    if recentReactions[key] and tick() - recentReactions[key] < (cfg.delay or 0) then
+        return false
+    end
+
+    if cfg.rv ~= false and distance >= 2 then
+        local maxAngle = Config.getMaxAngleForDistance(distance)
+        local enemyLookVector = enemyHRP.CFrame.LookVector
+        local dirVec = (LocalPlayer.Character.HumanoidRootPart.Position - enemyHRP.Position)
+        if dirVec.Magnitude ~= 0 then
+            local directionToMe = dirVec.Unit
+            local dot = clamp(enemyLookVector:Dot(directionToMe), -1, 1)
+            local angleDegrees = math.deg(math.acos(dot))
+            if angleDegrees > maxAngle then
+                return false
+            end
+        end
+    end
+
+    return true
+end
+
+
+local function react(playerObj, id, cfg)
+    if not cfg then return end
+    local keyToUse = getEffectiveKey(id, cfg.key or cfg.reaction)
+
+    local identifier = makeIdentifier(playerObj)
+    local reactionKey = identifier .. ":" .. tostring(id)
+    recentReactions[reactionKey] = tick()
+
+    task.delay(cfg.delay or 0, function()
+        if keyToUse == "lock" or cfg.reaction == "lock" then
+            local nameArg = (cfg.lockName and type(cfg.lockName) == "string" and cfg.lockName ~= "") and cfg.lockName or nil
+            if nameArg then
+                activateLockByName(nameArg, cfg.lockDuration or 1.3)
+            end
+            return
+        end
+
+        local action = keyActions[keyToUse]
+        if action then
+            action()
+        else
+            warn("No hay acción para la key:", tostring(keyToUse), "en id", id)
+        end
+    end)
+end
+
+-- =====================
+-- Animation handler
+-- =====================
+local function onAnimationPlayed(track, owner, isLocal, playerObj)
+    if not Config.autoParryEnabled then return end
+    if not track or not track.Animation or not track.Animation.AnimationId then return end
+
+    local id = track.Animation.AnimationId:match("%d+")
+    if not id then return end
+
+    local character = getCharacterFromOwner(owner)
+    if not character then return end
+
+    local targetHRP = character:FindFirstChild("HumanoidRootPart")
+    if not targetHRP then return end
+
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+
+    local ok, distance = pcall(function()
+        return (LocalPlayer.Character.HumanoidRootPart.Position - targetHRP.Position).Magnitude
+    end)
+    if not ok or not distance then return end
+
+    local configs = animationReactions[id]
+    if not configs then return end
+
+    -- normalizar a lista
+    local list = {}
+    if type(configs) == "table" and configs[1] then
+        for _, v in ipairs(configs) do table.insert(list, v) end
+    else
+        table.insert(list, configs)
+    end
+
+    -- FILTRAR: quitar las reacciones deshabilitadas y las autoAttack si el global está OFF
+    local filtered = {}
+    for _, cfg in ipairs(list) do
+        -- si cfg.disabled está presente y true -> ignorar
+        if cfg.disabled then
+            -- skip
+        elseif cfg.autoAttack and not Config.autoAttackEnabled then
+            -- es una autoAttack y el switch global está apagado -> ignorar
+        else
+            table.insert(filtered, cfg)
+        end
+    end
+    if #filtered == 0 then return end
+
+    -- filtrar válidos usando isValidReaction
+    local valid = {}
+    for _, cfg in ipairs(filtered) do
+        if isValidReaction(playerObj or character, id, distance, isLocal, targetHRP, cfg) then
+            table.insert(valid, cfg)
+        end
+    end
+    if #valid == 0 then return end
+
+    table.sort(valid, function(a, b) return (a.priority or 0) > (b.priority or 0) end)
+    for _, v in ipairs(valid) do react(playerObj or character, id, v) end
+end
+
+-- =====================
+-- Monitorizado y limpieza (jugadores / NPCs / Animators)
+-- =====================
+local function disconnectList(list)
+    if not list then return end
+    for _, c in ipairs(list) do
+        if c and c.Disconnect then
+            pcall(function() c:Disconnect() end)
+        end
+    end
+end
+
+local function cleanupKey(key)
+    if connections[key] then
+        disconnectList(connections[key].animConns)
+        if connections[key].childAddedConn then pcall(function() connections[key].childAddedConn:Disconnect() end) end
+        if connections[key].ancestryConn then pcall(function() connections[key].ancestryConn:Disconnect() end) end
+        connections[key] = nil
+    end
+end
+
+local function connectAnimatorToPlayer(key, character, animator, playerObj, isLocal)
+    if not animator or not animator:IsA("Animator") then return end
+    if animator.Parent and animator.Parent:IsA("Humanoid") then return end
+
+    local conn = animator.AnimationPlayed:Connect(function(track)
+        onAnimationPlayed(track, character, isLocal, playerObj)
+    end)
+    connections[key].animConns = connections[key].animConns or {}
+    table.insert(connections[key].animConns, conn)
+end
+
+local function monitorCharacter(playerObj, character, isLocal)
+    if not playerObj or not character then return end
+    local key = makeIdentifier(playerObj)
+
+    cleanupKey(key)
+
+    connections[key] = connections[key] or {}
+    connections[key].animConns = {}
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        local hconn = humanoid.AnimationPlayed:Connect(function(track)
+            onAnimationPlayed(track, humanoid, isLocal, playerObj)
+        end)
+        table.insert(connections[key].animConns, hconn)
+    end
+
+    for _, obj in ipairs(character:GetDescendants()) do
+        if obj:IsA("AnimationController") then
+            local anim = obj:FindFirstChild("Animator")
+            if anim then connectAnimatorToPlayer(key, character, anim, playerObj, isLocal) end
+        elseif obj:IsA("Animator") then
+            connectAnimatorToPlayer(key, character, obj, playerObj, isLocal)
+        end
+    end
+
+    connections[key].childAddedConn = character.ChildAdded:Connect(function(child)
+        if child:IsA("AnimationController") then
+            local anim = child:FindFirstChild("Animator") or child:WaitForChild("Animator", 2)
+            if anim then connectAnimatorToPlayer(key, character, anim, playerObj, isLocal) end
+        elseif child:IsA("Animator") then
+            connectAnimatorToPlayer(key, character, child, playerObj, isLocal)
+        else
+            task.defer(function()
+                for _, d in ipairs(child:GetDescendants()) do
+                    if d:IsA("AnimationController") then
+                        local a = d:FindFirstChild("Animator")
+                        if a then connectAnimatorToPlayer(key, character, a, playerObj, isLocal) end
+                    elseif d:IsA("Animator") then
+                        connectAnimatorToPlayer(key, character, d, playerObj, isLocal)
+                    end
+                end
+            end)
+        end
+    end)
+
+    connections[key].ancestryConn = character.AncestryChanged:Connect(function(_, parent)
+        if not parent then
+            cleanupKey(key)
+        end
+    end)
+end
+
+-- NPC monitor (workspace.Living)
+local function monitorNPC(npc)
+    if not npc or not npc:IsA("Model") then return end
+    local npcName = npc.Name
+    if not (string.find(npcName, "Fiend") or string.find(npcName, "Devil") or string.find(npcName, "Yakuza") or string.find(npcName, "Hunter") or string.find(npcName, "Guy") or string.find(npcName, "Zombie")) then return end
+
+    local key = "NPC_" .. npcName
+    cleanupKey(key)
+    connections[key] = connections[key] or {}
+    connections[key].animConns = {}
+
+    local humanoid = npc:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        local conn = humanoid.AnimationPlayed:Connect(function(track)
+            onAnimationPlayed(track, npc, false, npc)
+        end)
+        table.insert(connections[key].animConns, conn)
+    end
+
+    for _, obj in ipairs(npc:GetDescendants()) do
+        if obj:IsA("AnimationController") then
+            local anim = obj:FindFirstChild("Animator")
+            if anim then
+                local conn = anim.AnimationPlayed:Connect(function(track)
+                    onAnimationPlayed(track, npc, false, npc)
+                end)
+                table.insert(connections[key].animConns, conn)
+            end
+        end
+    end
+
+    connections[key].ancestryConn = npc.AncestryChanged:Connect(function(_, parent)
+        if not parent then cleanupKey(key) end
+    end)
+end
+
+-- =====================
+-- Conexiones iniciales
+-- =====================
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        if player.Character then monitorCharacter(player, player.Character, false) end
+        player.CharacterAdded:Connect(function(char)
+            task.wait(1)
+            monitorCharacter(player, char, false)
+        end)
+    end
+end
+
+local LivingFolder = workspace:WaitForChild("Living")
+for _, npc in ipairs(LivingFolder:GetChildren()) do monitorNPC(npc) end
+LivingFolder.ChildAdded:Connect(function(npc) task.wait(0.5) monitorNPC(npc) end)
+
+Players.PlayerAdded:Connect(function(player)
+    if player == LocalPlayer then return end
+    player.CharacterAdded:Connect(function(char) task.wait(1) monitorCharacter(player, char, false) end)
+    if player.Character then monitorCharacter(player, player.Character, false) end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    cleanupKey(makeIdentifier(player))
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    monitorCharacter(LocalPlayer, char, true)
+end)
+
+if LocalPlayer.Character then monitorCharacter(LocalPlayer, LocalPlayer.Character, true) end
+
+-- =====================
+-- Remote hook (si usas exploits con setreadonly/newcclosure)
+-- =====================
+local function hookRemotes()
+    pcall(function()
+        local remote = remotes.remote
+        local mt = getrawmetatable(game)
+        local oldNamecall = mt.__namecall
+        setreadonly(mt, false)
+
+        mt.__namecall = newcclosure(function(self, ...)
+            local args = {...}
+            local method = getnamecallmethod()
+
+            if self == remote and method == "FireServer" and args[1] == "NormalAttack" then
+                Config.redirectRtoF = true
+                task.delay(0.5, function() Config.redirectRtoF = false end)
+            end
+
+            return oldNamecall(self, ...)
+        end)
+
+        setreadonly(mt, true)
+    end)
+end
+
+hookRemotes()
+
+-- =====================
+-- Exports: Config y API (para que el GUI o módulos externos controlen el script)
+-- =====================
+_G.AutoParryConfig = Config
+
+_G.AutoParryAnimationReactions = animationReactions
+
+_G.AutoParryAPI = _G.AutoParryAPI or {}
+_G.AutoParryAPI.ActivateLock = function(name, duration) activateLockByName(name, duration) end
+_G.AutoParryAPI.DeactivateLock = function() deactivateLock() end
+_G.AutoParryAPI.SetAutoParry = function(val) Config.autoParryEnabled = not not val end
+_G.AutoParryAPI.SetCameraOffset = function(vec3) if typeof(vec3) == "Vector3" then Config.cameraOffset = vec3 end end
+-- Nuevas utilidades para control desde UI:
+_G.AutoParryAPI.SetReactionDisabled = function(animId, disabled)
+    if not animId then return end
+    local cfg = animationReactions[tostring(animId)]
+    if cfg then
+        -- si es array-like, marcamos disabled en cada subconfig
+        if type(cfg) == "table" and cfg[1] then
+            for _, v in ipairs(cfg) do v.disabled = disabled and true or nil end
+        else
+            cfg.disabled = disabled and true or nil
+        end
+    end
+end
+
+_G.AutoParryAPI.SetReactionAutoAttack = function(animId, isAuto)
+    if not animId then return end
+    local cfg = animationReactions[tostring(animId)]
+    if cfg then
+        if type(cfg) == "table" and cfg[1] then
+            for _, v in ipairs(cfg) do v.autoAttack = isAuto and true or nil end
+        else
+            cfg.autoAttack = isAuto and true or nil
+        end
+    end
+end
+
+_G.AutoParryAPI.GetEditableReactionIds = function()
+    local out = {}
+    for id, cfg in pairs(animationReactions) do
+        local editable = false
+        if type(cfg) == "table" and cfg.editable then editable = true end
+        -- si es array-like y alguno tiene editable -> true
+        if type(cfg) == "table" and cfg[1] then
+            for _, v in ipairs(cfg) do if v.editable then editable = true break end end
+        end
+        if editable then table.insert(out, id) end
+    end
+    return out
+end
+-- Fin del script
+-- Rayfield integration for AutoParry
+-- Pegar este script en un LocalScript separado (después de cargar la librería Rayfield)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Configuración de la ventana
+local Window = Rayfield:CreateWindow({
+   Name = "AutoParry Hub",
+   LoadingTitle = "AutoParry Hub",
+   LoadingSubtitle = "by Dylan(aka borrencsmdh)",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "DaniHubs",
+      FileName = "AutoParryConfig"
+   },
+   ToggleUIKeybind = "K",
+})
+
+-- Tabs
+local mainTab = Window:CreateTab("Main", "shield")
+local reactionsTab = Window:CreateTab("Reactions", "list")
+local cameraTab = Window:CreateTab("Camera", "move")
+local miscTab = Window:CreateTab("Misc", "settings")
+
+-- Helpers to read/write Config safely
+local function getConfig() return _G.AutoParryConfig or {} end
+local function setConfigField(k, v) 
+    local C = getConfig()
+    C[k] = v
+    _G.AutoParryConfig = C
+end
+
+-- MAIN TAB
+local autoToggle = mainTab:CreateToggle({
+    Name = "Auto-parry",
+    CurrentValue = getConfig().autoParryEnabled == true,
+    Flag = "AutoParryToggle",
+    Callback = function(value)
+        setConfigField("autoParryEnabled", value)
+        if _G.AutoParryAPI and _G.AutoParryAPI.SetAutoParry then
+            _G.AutoParryAPI.SetAutoParry(value)
+        end
+    end,
+})
+
+local redirectToggle = mainTab:CreateToggle({
+    Name = "Parry clash",
+    CurrentValue = getConfig().redirectRtoF == true,
+    Flag = "RedirectRtoF",
+    Callback = function(value)
+        setConfigField("redirectRtoF", value)
+    end,
+})
+
+local activateLockInput = mainTab:CreateInput({
+    Name = "Lock target name",
+    CurrentValue = "",
+    PlaceholderText = "Player name (start)",
+    Flag = "LockNameInput",
+    Callback = function(val) end,
+})
+
+local activateLockBtn = mainTab:CreateButton({
+    Name = "Activate Lock",
+    Callback = function()
+        local name = activateLockInput.CurrentValue
+        if name and name ~= "" and _G.AutoParryAPI and _G.AutoParryAPI.ActivateLock then
+            _G.AutoParryAPI.ActivateLock(name, 999) -- lock 10s by default (ajustable)
+            Rayfield:Notify({Title = "Lock", Content = "Lock activated: "..name, Duration = 3})
+        else
+            Rayfield:Notify({Title = "Lock", Content = "Invalid name or API not found", Duration = 3})
+        end
+    end,
+})
+
+local deactivateLockBtn = mainTab:CreateButton({
+    Name = "Deactivate Lock",
+    Callback = function()
+        if _G.AutoParryAPI and _G.AutoParryAPI.DeactivateLock then
+            _G.AutoParryAPI.DeactivateLock()
+            Rayfield:Notify({Title = "Lock", Content = "Lock deactivated", Duration = 2})
+        end
+    end,
+})
+
+-- CAMERA TAB: control X, Y, Z offsets
+local camOffset = getConfig().cameraOffset or Vector3.new(3,8,15)
+
+local sx = cameraTab:CreateSlider({
+   Name = "Camera Offset X (right)",
+   Range = {-20, 20},
+   Increment = 1,
+   CurrentValue = camOffset.X,
+   Flag = "CamOffsetX",
+   Callback = function(value)
+       local C = getConfig()
+       C.cameraOffset = Vector3.new(value, C.cameraOffset.Y, C.cameraOffset.Z)
+       setConfigField("cameraOffset", C.cameraOffset)
+       if _G.AutoParryAPI and _G.AutoParryAPI.SetCameraOffset then _G.AutoParryAPI.SetCameraOffset(C.cameraOffset) end
+   end,
+})
+
+local sy = cameraTab:CreateSlider({
+   Name = "Camera Offset Y (up)",
+   Range = {-20, 40},
+   Increment = 1,
+   CurrentValue = camOffset.Y,
+   Flag = "CamOffsetY",
+   Callback = function(value)
+       local C = getConfig()
+       C.cameraOffset = Vector3.new(C.cameraOffset.X, value, C.cameraOffset.Z)
+       setConfigField("cameraOffset", C.cameraOffset)
+       if _G.AutoParryAPI and _G.AutoParryAPI.SetCameraOffset then _G.AutoParryAPI.SetCameraOffset(C.cameraOffset) end
+   end,
+})
+
+local sz = cameraTab:CreateSlider({
+   Name = "Camera Offset Z (back)",
+   Range = {-40, 40},
+   Increment = 1,
+   CurrentValue = camOffset.Z,
+   Flag = "CamOffsetZ",
+   Callback = function(value)
+       local C = getConfig()
+       C.cameraOffset = Vector3.new(C.cameraOffset.X, C.cameraOffset.Y, value)
+       setConfigField("cameraOffset", C.cameraOffset)
+       if _G.AutoParryAPI and _G.AutoParryAPI.SetCameraOffset then _G.AutoParryAPI.SetCameraOffset(C.cameraOffset) end
+   end,
+})
+
+-- REACTIONS TAB: crea toggles dinámicos para cada id en animationReactions
+-- REACTIONS TAB: dinámico y solo muestra lo que el usuario decida
+local editableInput = reactionsTab:CreateInput({
+    Name = "Editable Reaction IDs (comma sep)",
+    CurrentValue = "",
+    PlaceholderText = "e.g. 11412413067,5502444144",
+    Flag = "EditableReactionList",
+    Callback = function(val) end,
+})
+
+local loadSelectedBtn = reactionsTab:CreateButton({
+    Name = "Load Selected Reactions",
+    Callback = function()
+        -- limpiar UI dinámico previo (si existe)
+        if reactionsTab._dynamicRows then
+            for _, row in ipairs(reactionsTab._dynamicRows) do
+                if row.Toggle then row.Toggle:Set(false) end
+                if row.AutoSet then row.AutoSet:Set(false) end
+            end
+        end
+        reactionsTab._dynamicRows = reactionsTab._dynamicRows or {}
+
+        local raw = editableInput.CurrentValue or ""
+        -- parsear ids (coma/espacio separados)
+        local ids = {}
+        for token in string.gmatch(raw, "[^,%s]+") do
+            table.insert(ids, token)
+        end
+        if #ids == 0 then
+            Rayfield:Notify({Title = "Reactions", Content = "No IDs provided", Duration = 2})
+            return
+        end
+
+        -- obtener la tabla global (que expone el LocalScript)
+        local AR = _G.AutoParryAnimationReactions or _G.AutoParryReactionsSnapshot or {}
+        for _, id in ipairs(ids) do
+            local cfg = AR[tostring(id)]
+            -- si no existe, crear placeholder para poder togglear/activar desde UI
+            if not cfg then
+                AR[tostring(id)] = { editable = true } -- placeholder
+                cfg = AR[tostring(id)]
+            end
+
+            -- crear toggles dinámicos: Enable + AutoAttack
+            local flagEnable = "ReactEnable_" .. tostring(id)
+            local flagAuto = "ReactAuto_" .. tostring(id)
+
+            local enableToggle = reactionsTab:CreateToggle({
+                Name = "Enable " .. tostring(id),
+                CurrentValue = not (cfg.disabled == true),
+                Flag = flagEnable,
+                Callback = function(val)
+                    -- actualizamos live
+                    _G.AutoParryAPI.SetReactionDisabled(id, not val)
+                    Rayfield:Notify({Title = "Reactions", Content = (val and "Enabled " or "Disabled ")..id, Duration = 1.6})
+                end,
+            })
+
+            local autoToggle = reactionsTab:CreateToggle({
+                Name = "AutoAttack "..tostring(id),
+                CurrentValue = (cfg.autoAttack == true),
+                Flag = flagAuto,
+                Callback = function(val)
+                    _G.AutoParryAPI.SetReactionAutoAttack(id, val)
+                    Rayfield:Notify({Title = "Reactions", Content = (val and "Marked autoAttack " or "Unmarked autoAttack ")..id, Duration = 1.6})
+                end,
+            })
+
+            table.insert(reactionsTab._dynamicRows, { Id = id, Toggle = enableToggle, AutoSet = autoToggle })
+        end
+
+        Rayfield:Notify({Title = "Reactions", Content = "Loaded "..tostring(#ids).." reactions", Duration = 2})
+    end,
+})
+
+-- Global AutoAttack switch (controla todas las reacciones con autoAttack=true)
+local globalAutoAttack = reactionsTab:CreateToggle({
+    Name = "AutoAttack Reactions (global)",
+    CurrentValue = getConfig().autoAttackEnabled == true,
+    Flag = "GlobalAutoAttack",
+    Callback = function(val)
+        setConfigField("autoAttackEnabled", val)
+        Rayfield:Notify({Title = "AutoAttack", Content = (val and "Enabled" or "Disabled"), Duration = 1.5})
+    end,
+})
+
+-- Acción de carga automática al abrir UI si tienes una lista guardada
+local savedList = Rayfield.Flags and Rayfield.Flags["EditableReactionList"] and Rayfield.Flags["EditableReactionList"].Value or nil
+if savedList and savedList ~= "" then
+    editableInput:Set(savedList)
+    -- simular click en carga para crear toggles
+    loadSelectedBtn.Callback()
+end
+
+
+-- MISC: quick actions and export
+miscTab:CreateButton({
+    Name = "Force Save Config Now",
+    Callback = function()
+        Rayfield:SaveConfiguration()
+        Rayfield:Notify({Title = "Config", Content = "Saved", Duration = 1.8})
+    end,
+})
+
+miscTab:CreateButton({
+    Name = "Force Load Config Now",
+    Callback = function()
+        Rayfield:LoadConfiguration()
+        Rayfield:Notify({Title = "Config", Content = "Loaded", Duration = 1.8})
+    end,
+})
+
+-- Keybind to toggle AutoParry quickly
+mainTab:CreateKeybind({
+    Name = "Toggle AutoParry Key",
+    CurrentKeybind = "P",
+    HoldToInteract = false,
+    Flag = "ToggleAPKey",
+    Callback = function(Key)
+        local cur = getConfig().autoParryEnabled
+        setConfigField("autoParryEnabled", not cur)
+        if _G.AutoParryAPI and _G.AutoParryAPI.SetAutoParry then
+            _G.AutoParryAPI.SetAutoParry(not cur)
+        end
+        Rayfield:Notify({Title = "AutoParry", Content = (not cur and "Enabled" or "Disabled"), Duration = 1.5})
+    end,
+})
+
+-- Important: expose animationReactions table to UI if possible (so toggles actually mutate the live table)
+-- If tu LocalScript no lo exportó, te recomiendo añadir en ese LocalScript:
+-- _G.AutoParryAnimationReactions = animationReactions
+-- (esto permite que la UI modifique 'disabled' flags directamente)
+
+-- Finalmente: load configuration so Rayfield restores values
+Rayfield:LoadConfiguration()
