@@ -1,6 +1,5 @@
 -- Auto-parry + Lock-On (LocalScript) - LIMPIO (sin GUI)
 -- Conserva conexiones, detección de animaciones y lock-on (controlable por código).
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -11,13 +10,10 @@ local LocalPlayer = Players.LocalPlayer
 -- Config (editable desde GUI / módulo externo)
 -- =====================
 local Config = {
-    -- toggle
     autoParryEnabled = true,
     autoAttackEnabled = true,
-    -- camera offset relativo al character cuando está locked (X = derecha, Y = arriba, Z = atrás)
+    autoParryKickEnabled = true,
     cameraOffset = Vector3.new(3, 8, 15),
-
-    -- redirect R -> F para ciertas animaciones
     redirectRtoF = false,
     redirectAnimations = {
         ["11412048186"] = true,
@@ -25,8 +21,6 @@ local Config = {
         ["8544209804"] = true,
         ["11367425425"] = true,
     },
-
-    -- función para ángulo máximo según distancia (ajustable)
     getMaxAngleForDistance = function(distance)
         if distance < 1.5 then return 180 end
         if distance < 5 then return 75 end
@@ -64,11 +58,6 @@ local function makeIdentifier(obj)
     return tostring(obj)
 end
 
-local function safeGetHRP(character)
-    if not character then return nil end
-    return character:FindFirstChild("HumanoidRootPart")
-end
-
 local function isModelHybrid(modelOrPlayer)
     if typeof(modelOrPlayer) == "Instance" and modelOrPlayer:IsA("Player") then
         local char = modelOrPlayer.Character
@@ -80,13 +69,11 @@ local function isModelHybrid(modelOrPlayer)
         if stp and stp:FindFirstChild("Transformed") then return true end
         return false
     end
-
     if typeof(modelOrPlayer) == "Instance" and modelOrPlayer:IsA("Model") then
         local st = modelOrPlayer:FindFirstChild("states")
         if st and st:FindFirstChild("Transformed") then return true end
         return false
     end
-
     return false
 end
 
@@ -109,7 +96,7 @@ local function getCharacterFromOwner(owner)
 end
 
 -- =====================
--- Reactions table (tu config original)
+-- Reactions table
 -- =====================
 local animationReactions = {
         --kon     
@@ -227,9 +214,9 @@ local animationReactions = {
 --katanaman x1
 	["12536618082"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
 --Parykicks
-	["11412413067"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false},
-	["11367862252"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false},
-	["8544289138"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["11412413067"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false, parrykick = true},
+	["11367862252"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false, parrykick = true},
+	["8544289138"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false, parrykick = true},
 -- ghost punch
 	["11805720948"] = { key = "Q", delay = 0.4, range = {min = 0, max = 28}, rv = false },
 --bomb X
@@ -278,20 +265,20 @@ local animationReactions = {
 
 animationReactions["11412048186"] = {
     { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true },
-    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true },
+    { key = "E", delay = 1.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true },
 }
 animationReactions["854420980"] = {
     { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true  },  
-    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
+    { key = "E", delay = 1.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
 }
 animationReactions["8544209804"] = {
     { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true  },
-    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
+    { key = "E", delay = 1.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
 }
 
 animationReactions["11367425425"] = {
     { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true  },
-    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
+    { key = "E", delay = 1.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
 }
 
 animationReactions["5502444144"] = {
@@ -339,15 +326,103 @@ local keyActions = {
 -- =====================
 -- State
 -- =====================
-local recentReactions = {} -- cooldown tracker
-local connections = {} -- limpieza de conexiones por key
+local recentReactions = {}
+local connections = {}
 
 -- =====================
--- Lock-on internals (sin GUI)
+-- Lock-on internals
 -- =====================
 local camera = workspace.CurrentCamera
 local targetPlayer = nil
 local isLockOnActive = false
+local lockSource = nil -- "manual" or "auto" or nil
+
+-- backup para restaurar manual si un auto lo sobreescribe temporalmente
+local lockBackup = {
+    manual = nil,        -- { target = <Player> } si hay manual guardado
+    currentAutoId = 0,   -- id para evitar race conditions entre autos
+}
+
+local function resetCameraSubject()
+    task.spawn(function()
+        pcall(function()
+            local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                camera.CameraSubject = nil
+                task.wait()
+                camera.CameraSubject = humanoid
+            end
+        end)
+    end)
+end
+
+local function setLockState(active, foundPlayer, source)
+    -- source: "manual" or "auto" or nil
+    if active then
+        -- resolver Player desde Model si es necesario
+        local playerInstance = nil
+        if typeof(foundPlayer) == "Instance" then
+            if foundPlayer:IsA("Player") then
+                playerInstance = foundPlayer
+            elseif foundPlayer:IsA("Model") then
+                playerInstance = Players:GetPlayerFromCharacter(foundPlayer)
+            end
+        end
+        if not playerInstance then
+            -- nothing to lock to
+            return
+        end
+
+        if source == "auto" and isLockOnActive and lockSource == "manual" then
+            -- auto PREVALECE temporalmente: guarda el manual actual para restaurarlo luego
+            lockBackup.manual = { target = targetPlayer }
+        end
+
+        if source == "manual" then
+            -- si se activa manual mientras hay un auto, consideramos que el manual
+            -- es ahora el principal y no queremos restaurar un manual viejo después.
+            lockBackup.manual = nil
+        end
+
+        targetPlayer = playerInstance
+        isLockOnActive = true
+        lockSource = source or lockSource or "auto"
+    else
+        -- deactivation rules:
+        if source == "manual" then
+            -- manual deactivation always wins: borra todo (incluido backup)
+            isLockOnActive = false
+            targetPlayer = nil
+            lockSource = nil
+            lockBackup.manual = nil
+            -- invalidar cualquier auto pendiente (evita que un callback antiguo lo restaure)
+            lockBackup.currentAutoId = lockBackup.currentAutoId + 1
+            resetCameraSubject()
+        else
+            -- auto deactivation only if lock was set by auto
+            if lockSource == "auto" then
+                -- si tenemos un manual guardado, lo restauramos
+                if lockBackup.manual and lockBackup.manual.target then
+                    local prev = lockBackup.manual.target
+                    -- verificar que prev todavía sea un player válido
+                    local ok = pcall(function() end)
+                    targetPlayer = prev
+                    isLockOnActive = true
+                    lockSource = "manual"
+                    lockBackup.manual = nil
+                    -- no reseteamos cámara (seguimos lock con el manual restaurado)
+                else
+                    -- no hay manual guardado: limpiar todo
+                    isLockOnActive = false
+                    targetPlayer = nil
+                    lockSource = nil
+                    resetCameraSubject()
+                end
+            end
+            -- if lockSource == "manual", ignore auto-deactivation (no cambia nada)
+        end
+    end
+end
 
 local function findClosestMatch(name)
     if not name or name == "" then return nil end
@@ -360,39 +435,46 @@ local function findClosestMatch(name)
     return nil
 end
 
-local function setLockState(active, found)
-    isLockOnActive = active
-    targetPlayer = active and found or nil
-    -- cuando se desactiva, forzamos refresh de CameraSubject para evitar problemas (shiftlock)
-    if not active then
-        task.spawn(function()
-            pcall(function()
-                local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    camera.CameraSubject = nil
-                    task.wait()
-                    camera.CameraSubject = humanoid
-                end
-            end)
+local function activateLockManual(name, duration)
+    if not name or name == "" then return end
+    local found = findClosestMatch(name)
+    if not found then return end
+    setLockState(true, found, "manual")
+    if duration and duration > 0 then
+        -- schedule manual deactivation (but manual deactivation can still clear it earlier)
+        task.delay(duration, function()
+            setLockState(false, nil, "manual")
         end)
     end
 end
 
-local function activateLockByName(name, duration)
-    -- ahora NO depende de una TextBox; debe pasarse 'name' desde fuera.
-    if not name or name == "" then return end
-    local found = findClosestMatch(name)
-    if not found then return end
-    setLockState(true, found)
-    task.delay(duration or 1.5, function()
-        if isLockOnActive and targetPlayer == found then
-            setLockState(false)
+local function activateLockAutoByPlayer(actorInstance, duration)
+    if not actorInstance then return end
+    local targetP = nil
+    if actorInstance:IsA("Player") then
+        targetP = actorInstance
+    elseif actorInstance:IsA("Model") then
+        targetP = Players:GetPlayerFromCharacter(actorInstance)
+    end
+    if not targetP then return end
+
+    -- asignar id único para este auto (evita race entre varios autos)
+    lockBackup.currentAutoId = lockBackup.currentAutoId + 1
+    local myAutoId = lockBackup.currentAutoId
+
+    -- si hay un manual activo, se guardará dentro de setLockState al entrar con source="auto"
+    setLockState(true, targetP, "auto")
+
+    -- programar desactivación solo si este auto sigue siendo el actual
+    task.delay(duration or 1.3, function()
+        if lockBackup.currentAutoId == myAutoId then
+            setLockState(false, nil, "auto")
         end
     end)
 end
 
 local function deactivateLock()
-    setLockState(false)
+    setLockState(false, nil, "manual")
 end
 
 RunService.RenderStepped:Connect(function()
@@ -409,12 +491,12 @@ RunService.RenderStepped:Connect(function()
             root.CFrame = CFrame.new(selfPos) * CFrame.Angles(0, y, 0)
         end
 
-        -- cámara con offset relativo al root (usa Config.cameraOffset)
         local camPos = root.Position + (root.CFrame:VectorToWorldSpace(Config.cameraOffset))
         camera.CFrame = CFrame.new(camPos, targetRoot.Position)
     else
         if isLockOnActive then
-            setLockState(false)
+            -- if target lost, clear regardless of source (mantengo comportamiento actual)
+            setLockState(false, nil, "manual")
         end
     end
 end)
@@ -429,19 +511,14 @@ local function getEffectiveKey(id, originalKey)
     return originalKey
 end
 
--- Reemplaza la función isValidReaction por esta
 local function isValidReaction(playerObj, id, distance, isLocal, enemyHRP, cfg)
     if not cfg then return false end
 
-    -- Si la animación viene del jugador local: sólo permitirla si cfg.localAllowed == true
     if isLocal then
         if not cfg.localAllowed then
             return false
         end
-        -- si cfg.localAllowed == true, seguimos validando el resto de checks
     end
-
-    -- Si la animación viene de otro (no-local) y cfg.localAllowed == false, NO afecta: seguimos normalmente
 
     if not LocalPlayer or not LocalPlayer.Character then return false end
     if not enemyHRP or not enemyHRP.Parent then return false end
@@ -482,7 +559,6 @@ local function isValidReaction(playerObj, id, distance, isLocal, enemyHRP, cfg)
     return true
 end
 
-
 local function react(playerObj, id, cfg)
     if not cfg then return end
     local keyToUse = getEffectiveKey(id, cfg.key or cfg.reaction)
@@ -493,9 +569,24 @@ local function react(playerObj, id, cfg)
 
     task.delay(cfg.delay or 0, function()
         if keyToUse == "lock" or cfg.reaction == "lock" then
-            local nameArg = (cfg.lockName and type(cfg.lockName) == "string" and cfg.lockName ~= "") and cfg.lockName or nil
-            if nameArg then
-                activateLockByName(nameArg, cfg.lockDuration or 1.3)
+            -- new: lock uses the actor (playerObj) as the lock target
+            local actor = playerObj
+            local actorPlayer = nil
+            if typeof(actor) == "Instance" then
+                if actor:IsA("Player") then
+                    actorPlayer = actor
+                elseif actor:IsA("Model") then
+                    actorPlayer = Players:GetPlayerFromCharacter(actor)
+                end
+            end
+            if actorPlayer then
+                activateLockAutoByPlayer(actorPlayer, cfg.lockDuration or 1.3)
+            else
+                -- fallback: if cfg.lockName explicitly provided, use manual activation by name
+                local nameArg = (cfg.lockName and type(cfg.lockName) == "string" and cfg.lockName ~= "") and cfg.lockName or nil
+                if nameArg then
+                    activateLockManual(nameArg, cfg.lockDuration or 1.3)
+                end
             end
             return
         end
@@ -535,7 +626,6 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
     local configs = animationReactions[id]
     if not configs then return end
 
-    -- normalizar a lista
     local list = {}
     if type(configs) == "table" and configs[1] then
         for _, v in ipairs(configs) do table.insert(list, v) end
@@ -543,21 +633,21 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
         table.insert(list, configs)
     end
 
-    -- FILTRAR: quitar las reacciones deshabilitadas y las autoAttack si el global está OFF
-    local filtered = {}
+        local filtered = {}
     for _, cfg in ipairs(list) do
-        -- si cfg.disabled está presente y true -> ignorar
         if cfg.disabled then
             -- skip
         elseif cfg.autoAttack and not Config.autoAttackEnabled then
-            -- es una autoAttack y el switch global está apagado -> ignorar
+            -- skip auto-attack while feature off
+        elseif cfg.parrykick and not Config.autoParryKickEnabled then
+            -- skip parrykick (m1 localAllowed) while feature off
         else
             table.insert(filtered, cfg)
         end
     end
+
     if #filtered == 0 then return end
 
-    -- filtrar válidos usando isValidReaction
     local valid = {}
     for _, cfg in ipairs(filtered) do
         if isValidReaction(playerObj or character, id, distance, isLocal, targetHRP, cfg) then
@@ -752,25 +842,77 @@ local function hookRemotes()
 end
 
 hookRemotes()
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local remoteEvent = ReplicatedStorage:WaitForChild("events"):WaitForChild("remote")
+
+local autoDashEnabled = false
+local isDashing = false
+local dashDelay = 0.1
+local idleThreshold = 1
+
+local currentHRP = nil
+
+local function fireDash()
+    local args = { "Dash", "" }
+    remoteEvent:FireServer(unpack(args))
+end
+
+local function isIdle()
+    if not currentHRP then return false end
+    return currentHRP.Velocity.Magnitude < idleThreshold
+end
+
+RunService.Heartbeat:Connect(function()
+    if not autoDashEnabled then return end
+    if not currentHRP then return end
+
+    if isIdle() and not isDashing then
+        isDashing = true
+        task.spawn(function()
+            while isDashing and isIdle() and autoDashEnabled do
+                fireDash()
+                task.wait(dashDelay)
+            end
+            isDashing = false
+        end)
+    elseif not isIdle() then
+        isDashing = false
+    end
+end)
+
+local function updateCharacterReferences()
+    local character = player.Character or player.CharacterAdded:Wait()
+    currentHRP = character:WaitForChild("HumanoidRootPart")
+end
+
+player.CharacterAdded:Connect(updateCharacterReferences)
+
+updateCharacterReferences()
+
+-- <<< ESTA VARIABLE LA LEERÁ RAYFIELD >>>
+_G.AutoDashEnabled = function(state)
+    autoDashEnabled = state
+end
 
 -- =====================
 -- Exports: Config y API (para que el GUI o módulos externos controlen el script)
 -- =====================
 _G.AutoParryConfig = Config
-
 _G.AutoParryAnimationReactions = animationReactions
 
 _G.AutoParryAPI = _G.AutoParryAPI or {}
-_G.AutoParryAPI.ActivateLock = function(name, duration) activateLockByName(name, duration) end
+_G.AutoParryAPI.ActivateLock = function(name, duration) activateLockManual(name, duration) end
 _G.AutoParryAPI.DeactivateLock = function() deactivateLock() end
 _G.AutoParryAPI.SetAutoParry = function(val) Config.autoParryEnabled = not not val end
 _G.AutoParryAPI.SetCameraOffset = function(vec3) if typeof(vec3) == "Vector3" then Config.cameraOffset = vec3 end end
--- Nuevas utilidades para control desde UI:
 _G.AutoParryAPI.SetReactionDisabled = function(animId, disabled)
     if not animId then return end
     local cfg = animationReactions[tostring(animId)]
     if cfg then
-        -- si es array-like, marcamos disabled en cada subconfig
         if type(cfg) == "table" and cfg[1] then
             for _, v in ipairs(cfg) do v.disabled = disabled and true or nil end
         else
@@ -778,7 +920,6 @@ _G.AutoParryAPI.SetReactionDisabled = function(animId, disabled)
         end
     end
 end
-
 _G.AutoParryAPI.SetReactionAutoAttack = function(animId, isAuto)
     if not animId then return end
     local cfg = animationReactions[tostring(animId)]
@@ -790,13 +931,15 @@ _G.AutoParryAPI.SetReactionAutoAttack = function(animId, isAuto)
         end
     end
 end
+_G.AutoParryAPI.SetParryKick = function(val)
+    Config.autoParryKickEnabled = not not val
+end
 
 _G.AutoParryAPI.GetEditableReactionIds = function()
     local out = {}
     for id, cfg in pairs(animationReactions) do
         local editable = false
         if type(cfg) == "table" and cfg.editable then editable = true end
-        -- si es array-like y alguno tiene editable -> true
         if type(cfg) == "table" and cfg[1] then
             for _, v in ipairs(cfg) do if v.editable then editable = true break end end
         end
@@ -804,7 +947,8 @@ _G.AutoParryAPI.GetEditableReactionIds = function()
     end
     return out
 end
--- Fin del script
+-- Fin del LocalScript
+
 -- Rayfield integration for AutoParry
 -- Pegar este script en un LocalScript separado (después de cargar la librería Rayfield)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -846,6 +990,30 @@ local autoToggle = mainTab:CreateToggle({
         if _G.AutoParryAPI and _G.AutoParryAPI.SetAutoParry then
             _G.AutoParryAPI.SetAutoParry(value)
         end
+    end,
+})
+
+local autoDashToggle = mainTab:CreateToggle({
+    Name = "Auto Dash (Idle Dash)",
+    CurrentValue = false,
+    Flag = "AutoDash",
+    Callback = function(value)
+        _G.AutoDashEnabled(value)
+        Rayfield:Notify({
+            Title = "Auto Dash",
+            Content = value and "Enabled" or "Disabled",
+            Duration = 1.5
+        })
+    end,
+})
+
+local parryKickToggle = mainTab:CreateToggle({
+    Name = "AutoParryKick Enabled",
+    CurrentValue = getConfig().autoParryKickEnabled == true,
+    Flag = "AutoParryKick",
+    Callback = function(value)
+        setConfigField("autoParryKickEnabled", value)
+        Rayfield:Notify({Title = "AutoParryKick", Content = (value and "Enabled" or "Disabled"), Duration = 1.6})
     end,
 })
 
@@ -935,79 +1103,7 @@ local sz = cameraTab:CreateSlider({
 })
 
 -- REACTIONS TAB: crea toggles dinámicos para cada id en animationReactions
--- REACTIONS TAB: dinámico y solo muestra lo que el usuario decida
-local editableInput = reactionsTab:CreateInput({
-    Name = "Editable Reaction IDs (comma sep)",
-    CurrentValue = "",
-    PlaceholderText = "e.g. 11412413067,5502444144",
-    Flag = "EditableReactionList",
-    Callback = function(val) end,
-})
-
-local loadSelectedBtn = reactionsTab:CreateButton({
-    Name = "Load Selected Reactions",
-    Callback = function()
-        -- limpiar UI dinámico previo (si existe)
-        if reactionsTab._dynamicRows then
-            for _, row in ipairs(reactionsTab._dynamicRows) do
-                if row.Toggle then row.Toggle:Set(false) end
-                if row.AutoSet then row.AutoSet:Set(false) end
-            end
-        end
-        reactionsTab._dynamicRows = reactionsTab._dynamicRows or {}
-
-        local raw = editableInput.CurrentValue or ""
-        -- parsear ids (coma/espacio separados)
-        local ids = {}
-        for token in string.gmatch(raw, "[^,%s]+") do
-            table.insert(ids, token)
-        end
-        if #ids == 0 then
-            Rayfield:Notify({Title = "Reactions", Content = "No IDs provided", Duration = 2})
-            return
-        end
-
-        -- obtener la tabla global (que expone el LocalScript)
-        local AR = _G.AutoParryAnimationReactions or _G.AutoParryReactionsSnapshot or {}
-        for _, id in ipairs(ids) do
-            local cfg = AR[tostring(id)]
-            -- si no existe, crear placeholder para poder togglear/activar desde UI
-            if not cfg then
-                AR[tostring(id)] = { editable = true } -- placeholder
-                cfg = AR[tostring(id)]
-            end
-
-            -- crear toggles dinámicos: Enable + AutoAttack
-            local flagEnable = "ReactEnable_" .. tostring(id)
-            local flagAuto = "ReactAuto_" .. tostring(id)
-
-            local enableToggle = reactionsTab:CreateToggle({
-                Name = "Enable " .. tostring(id),
-                CurrentValue = not (cfg.disabled == true),
-                Flag = flagEnable,
-                Callback = function(val)
-                    -- actualizamos live
-                    _G.AutoParryAPI.SetReactionDisabled(id, not val)
-                    Rayfield:Notify({Title = "Reactions", Content = (val and "Enabled " or "Disabled ")..id, Duration = 1.6})
-                end,
-            })
-
-            local autoToggle = reactionsTab:CreateToggle({
-                Name = "AutoAttack "..tostring(id),
-                CurrentValue = (cfg.autoAttack == true),
-                Flag = flagAuto,
-                Callback = function(val)
-                    _G.AutoParryAPI.SetReactionAutoAttack(id, val)
-                    Rayfield:Notify({Title = "Reactions", Content = (val and "Marked autoAttack " or "Unmarked autoAttack ")..id, Duration = 1.6})
-                end,
-            })
-
-            table.insert(reactionsTab._dynamicRows, { Id = id, Toggle = enableToggle, AutoSet = autoToggle })
-        end
-
-        Rayfield:Notify({Title = "Reactions", Content = "Loaded "..tostring(#ids).." reactions", Duration = 2})
-    end,
-})
+-- REACTIONS TAB — crea toggles automáticamente para entries con editable = true
 
 -- Global AutoAttack switch (controla todas las reacciones con autoAttack=true)
 local globalAutoAttack = reactionsTab:CreateToggle({
@@ -1020,13 +1116,6 @@ local globalAutoAttack = reactionsTab:CreateToggle({
     end,
 })
 
--- Acción de carga automática al abrir UI si tienes una lista guardada
-local savedList = Rayfield.Flags and Rayfield.Flags["EditableReactionList"] and Rayfield.Flags["EditableReactionList"].Value or nil
-if savedList and savedList ~= "" then
-    editableInput:Set(savedList)
-    -- simular click en carga para crear toggles
-    loadSelectedBtn.Callback()
-end
 
 
 -- MISC: quick actions and export
