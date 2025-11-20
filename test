@@ -1068,7 +1068,7 @@ local ProjectileParry = {
         return tostring(inst.Name) == "SawBlade"
     end,
     radius = 3,
-    minRadius = 12,
+    minRadius = 6,
     minExistence = 0, -- reaccion inmediata por defecto para este tipo (puedes ajustar)
     key = "F",
     debounce = 10,
