@@ -1002,17 +1002,16 @@ _G.AutoParryAPI.GetEditableReactionIds = function()
     return out
 end
 
--- Fin del LocalScript
--- Projectile Parry Helper (LocalScript) - actualizado
+-- Projectile Parry Helper (LocalScript) - con reactDelay por tipo
 -- Detecta proyectiles (AirSlash / BloodSpear / SawBlade) y activa Parry (F) o Dash (Q)
--- Añadido: matchers robustos y minRadius (distancia mínima) que marca proyectiles como ignorados si aparecen demasiado cerca.
+-- Añadido: reactDelay (tiempo mínimo de existencia antes de reaccionar)
+-- Mantiene: minRadius (ignorar si aparece demasiado cerca), matchers robustos, single-trigger por proyectil
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
-
 local eventsFolder = ReplicatedStorage:WaitForChild("events")
 local remotes = {
     remote = eventsFolder:WaitForChild("remote"),
@@ -1022,13 +1021,13 @@ local remotes = {
 local ProjectileParry = {
     enabled = true,
     -- Per-type config (radius = trigger distance, minRadius = ignore if too close upon detection)
+    -- reactDelay = seconds that the projectile must exist (since detection) before we can react
     types = {
         AirSlash = {
             name = "AirSlash",
             matcher = function(inst)
                 local name = tostring(inst.Name):lower()
                 if name:find("airslash") then return true end
-                -- buscar ancestros (folder/model) que contengan "airslash"
                 local p = inst.Parent
                 while p do
                     if tostring(p.Name):lower():find("airslash") then return true end
@@ -1037,9 +1036,9 @@ local ProjectileParry = {
                 return false
             end,
             radius = 37,
-            minRadius = 12, -- si quieres ignorar por estar demasiado cerca usa >0, p.ej. 2 o 8
+            minRadius = 12, -- si aparece más cerca que esto, lo ignoramos
+            reactDelay = 0.6, -- segundos (0 = reaccionar inmediatamente)
             key = "F",
-            debounce = 10,
             enabled = true,
         },
         BloodSpear = {
@@ -1056,8 +1055,26 @@ local ProjectileParry = {
             end,
             radius = 37,
             minRadius = 12,
+            reactDelay = 0.9,
             key = "F",
-            debounce = 10,
+            enabled = true,
+        },
+        Karambit = {
+            name = "karambit",
+            matcher = function(inst)
+                local name = tostring(inst.Name):lower()
+                if name:find("bloodspear") then return true end
+                local p = inst.Parent
+                while p do
+                    if tostring(p.Name):lower():find("bloodspear") then return true end
+                    p = p.Parent
+                end
+                return false
+            end,
+            radius = 37,
+            minRadius = 12,
+            reactDelay = 0,
+            key = "F",
             enabled = true,
         },
         SawBlade = {
@@ -1074,8 +1091,8 @@ local ProjectileParry = {
             end,
             radius = 3,
             minRadius = 12,
+            reactDelay = 0.0,
             key = "F",
-            debounce = 10,
             enabled = true,
         },
     },
@@ -1095,7 +1112,8 @@ local ProjectileParry = {
     end,
 }
 
-local tracked = {} -- tracked[instance] = {typeName, lastTriggered, conn, ignoredDueToTooClose}
+-- tracked[instance] = { typeName, firstSeen, triggered, ignoredDueToTooClose, conn }
+local tracked = {}
 local lastCleanup = 0
 
 local function performKeyAction(key)
@@ -1114,12 +1132,18 @@ local function watchInstance(inst, typeName, cfg)
     if not inst or not inst.Parent then return end
     if tracked[inst] then return end
 
-    local data = { typeName = typeName, lastTriggered = 0, ignoredDueToTooClose = false, conn = nil }
+    local data = {
+        typeName = typeName,
+        firstSeen = tick(),
+        triggered = false,
+        ignoredDueToTooClose = false,
+        conn = nil,
+    }
     tracked[inst] = data
 
     local conn
     conn = RunService.Heartbeat:Connect(function()
-        -- cleanup if destroyed
+        -- si el objeto desaparece, desconectar y limpiar
         if not inst or not inst.Parent then
             if conn then conn:Disconnect() end
             tracked[inst] = nil
@@ -1130,17 +1154,21 @@ local function watchInstance(inst, typeName, cfg)
         if not cfg.enabled then return end
         if _G and _G.AutoParryConfig and not _G.AutoParryConfig.autoParryEnabled then return end
 
+        -- si ya hemos disparado para este proyectil, no volver a disparar
+        if data.triggered then
+            return
+        end
+
         local projPos = ProjectileParry.getPositionFromInstance(inst)
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not projPos or not hrp then return end
 
         local distance = (projPos - hrp.Position).Magnitude
 
-        -- check minRadius: if detected too close, mark ignored forever (until instance destroyed)
+        -- check minRadius: si apareció demasiado cerca lo marcamos como ignorado
         if cfg.minRadius and cfg.minRadius > 0 and not data.ignoredDueToTooClose then
             if distance <= cfg.minRadius then
                 data.ignoredDueToTooClose = true
-                -- optional: store when it was marked
                 data.ignoredMarkedAt = tick()
                 return
             end
@@ -1150,13 +1178,20 @@ local function watchInstance(inst, typeName, cfg)
             return
         end
 
-        -- normal trigger when inside radius
-        if distance <= cfg.radius then
-            local now = tick()
-            if now - data.lastTriggered >= (cfg.debounce or 0.5) then
-                data.lastTriggered = now
-                performKeyAction(cfg.key)
-            end
+        -- comprobar reactDelay: debe existir al menos reactDelay segundos desde primera detección
+        local now = tick()
+        local age = now - data.firstSeen
+        local delayNeeded = cfg.reactDelay or 0
+        if age < delayNeeded then
+            return
+        end
+
+        -- trigger cuando está dentro del radio
+        if distance <= (cfg.radius or math.huge) then
+            data.triggered = true -- marcar para no disparar de nuevo
+            -- ejecutar acción no bloqueante
+            performKeyAction(cfg.key)
+            -- dejamos que la limpieza elimine la entrada cuando el objeto desaparezca
         end
     end)
 
@@ -1164,8 +1199,6 @@ local function watchInstance(inst, typeName, cfg)
 end
 
 local function scanAndHook()
-    -- scan workspace descendants but optimized: check workspace root + EFFECT folder + global DescendantAdded
-    -- scan all current descendants for matches
     for _, inst in ipairs(workspace:GetDescendants()) do
         for typeName, cfg in pairs(ProjectileParry.types) do
             pcall(function()
@@ -1174,7 +1207,6 @@ local function scanAndHook()
         end
     end
 
-    -- descendant added global hook
     workspace.DescendantAdded:Connect(function(inst)
         for typeName, cfg in pairs(ProjectileParry.types) do
             pcall(function()
@@ -1216,13 +1248,14 @@ end
 _G.AutoParryProjectileAPI.SetTypeKey = function(typeName, key)
     if ProjectileParry.types[typeName] and (key == "F" or key == "Q") then ProjectileParry.types[typeName].key = key end
 end
-_G.AutoParryProjectileAPI.SetTypeDebounce = function(typeName, s)
-    if ProjectileParry.types[typeName] and type(s) == "number" then ProjectileParry.types[typeName].debounce = s end
+_G.AutoParryProjectileAPI.SetTypeReactDelay = function(typeName, s)
+    if ProjectileParry.types[typeName] and type(s) == "number" and s >= 0 then ProjectileParry.types[typeName].reactDelay = s end
 end
 _G.AutoParryProjectileAPI.GetTracked = function() return tracked end
 _G.AutoParryProjectileAPI.ForceClearIgnored = function(inst) if tracked[inst] then tracked[inst].ignoredDueToTooClose = false end end
 
-print("[ProjectileParry] listo: matchers actualizados y minRadius implementado.")
+print("[ProjectileParry] listo: reactDelay implementado, minRadius activo y single-trigger por proyectil.")
+
 
 -- Rayfield integration for AutoParry
 -- Pegar este script en un LocalScript separado (después de cargar la librería Rayfield)
