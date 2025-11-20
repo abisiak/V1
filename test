@@ -18,6 +18,58 @@ local Config = {
     autoParryKickEnabled = true,
     cameraOffset = Vector3.new(3, 8, 15),
     redirectEnabled = false,
+    m1AnimationIds = {
+    ["7568108641"] = true,
+    ["3487211959"] = true,
+    ["15404604913"]  = true,
+    ["15404609840"]  = true,
+    ["15404615382"]  = true,
+    ["8179748204"]  = true,
+    ["15414582390"]  = true,
+    ["15414585949"]  = true,
+    ["15430111795"]  = true,
+    ["12373722677"]  = true,
+    ["12373744698"]  = true,
+    ["12374008952"]  = true,
+    ["12690107981"]  = true,
+    ["16024193549"]  = true,
+    ["16024282314"]  = true,
+    ["16024897725"]  = true,
+    ["12539917297"]  = true,
+    ["12539924939"]  = true,
+    ["12539907543"]  = true,
+    ["12539896513"]  = true,
+    ["130481997116962"]  = true,
+    ["12641658796"]  = true,
+    ["12641656228"]  = true,
+    ["11916882700"]  = true,
+    ["12630461862"]  = true,
+    ["7393178909"]  = true,
+    ["12694331871"]  = true,
+    ["12694448884"]  = true,
+    ["12702771654"]  = true,
+    ["12703011805"]  = true,
+    ["12702972513"]  = true,
+    ["15430188883"]  = true,
+    ["15430192542"]  = true,
+    ["15430196462"]  = true,
+    ["15581919407"]  = true,
+    ["8121978139"]  = true,
+    ["8122021891"]  = true,
+    ["8122080110"]  = true,
+    ["11725550905"]  = true,
+    ["12196524051"]  = true,
+    ["12196677030"]  = true,
+    ["12196631889"]  = true,
+    ["12583743676"]  = true,
+    ["8179748204"]  = true,
+    ["12536641543"]  = true,
+    ["12536648018"]  = true,
+    ["12536618082"]  = true,
+    ["87443479643080"]  = true,
+    ["117849900104484"]  = true,
+    ["79984916073099"]  = true,
+    },
     redirectAnimations = {
         ["11412048186"] = true,
         ["854420980"] = true,
@@ -217,9 +269,9 @@ local animationReactions = {
 --katanaman x1
 	["12536618082"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
 --Parykicks
-	["11412413067"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false, parrykick = true},
-	["11367862252"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false, parrykick = true},
-	["8544289138"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false, parrykick = true},
+	["11412413067"] = { key = "m1", delay = 0.18, range = {min = 0, max = 8}, localAllowed = true , rv = false},
+	["11367862252"] = { key = "m1", delay = 0.18, range = {min = 0, max = 8}, localAllowed = true , rv = false},
+	["8544289138"] = { key = "m1", delay = 0.18, range = {min = 0, max = 8}, localAllowed = true , rv = false},
 -- ghost punch
 	["11805720948"] = { key = "Q", delay = 0.4, range = {min = 0, max = 28}, rv = false },
 --bomb X
@@ -265,47 +317,46 @@ local animationReactions = {
 	-- R shield
 	["126438176215231"] = { key = "Q", delay = 0.1, range = {min = 0, max = 35}, rv = false },
 }
-
 animationReactions["11412048186"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true },
-    { key = "E", delay = 1.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1 },
+    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human" },
 }
 animationReactions["854420980"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true  },  
-    { key = "E", delay = 1.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1 },  
+    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human" },
 }
 animationReactions["8544209804"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true  },
-    { key = "E", delay = 1.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1 },
+    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human" },
 }
 
 animationReactions["11367425425"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, editable = true  },
-    { key = "E", delay = 1.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true, editable = true  },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1 },
+    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human" },
 }
 
 animationReactions["5502444144"] = {
-    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true, editable = true  },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true, editable = true  },
-    { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true, editable = true  },
+    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false },
+    { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid" },
 }
 
 animationReactions["5502635805"] = {
-    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true, editable = true  },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true, editable = true  },
-  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true, editable = true  },
+    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false },
+  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid" },
 }
 
 animationReactions["5502286572"] = {
-    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true, editable = true  },
+    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
     { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false },
-  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true, editable = true  },
+  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid" },
 }
 
 animationReactions["5502543898"] = {
-    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true, editable = true  },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true, editable = true  },
-  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true, editable = true  },
+    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false },
+  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid" },
 }
 
 -- =====================
@@ -317,13 +368,13 @@ local keyActions = {
     R = function() remotes.remote:FireServer("StrongAttack") end,
     E = function() remotes.remote:FireServer("Skill1") end,
     k = function() remotes.toolremote:FireServer("Ghot Hand Punch") end,
-    axe = function() remotes.toolremote:FireServer("Claw Slash") end,
+    axe = function() remotes.toolremote:FireServer("Axe Kick") end,
     m1 = function()
         remotes.remote:FireServer("NormalAttack")
         -- activar redirección temporal SOLAMENTE si el toggle persistente lo permite
         if Config.redirectEnabled then
             redirectActive = true
-            task.delay(0.5, function() redirectActive = false end)
+            task.delay(0.6, function() redirectActive = false end)
         end
     end,
 
@@ -512,10 +563,8 @@ end)
 -- Reaction validation + execution
 -- =====================
 local function getEffectiveKey(id, originalKey)
-    -- seguridad: obtener la tabla actual de animaciones a redireccionar
-    local redirectList = (Config and Config.redirectAnimations) or {}
     -- sólo cuando redirectActive está ON (y la anim está en la lista) redirigimos R -> F
-    if redirectActive and originalKey == "R" and redirectList[tostring(id)] then
+    if redirectActive and originalKey == "R" and Config.redirectAnimations[id] then
         return "F"
     end
     return originalKey
@@ -624,6 +673,19 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
 
     local character = getCharacterFromOwner(owner)
     if not character then return end
+
+        local id = track.Animation.AnimationId:match("%d+")
+    if not id then return end
+
+    local character = getCharacterFromOwner(owner)
+    if not character then return end
+
+    -- >>> NUEVO: si es mi anim local y es una M1, activar redirect temporal
+    if isLocal and Config.m1AnimationIds[id] and Config.redirectEnabled then
+        redirectActive = true
+        task.delay(0.6, function() redirectActive = false end)
+    end
+    -- <<< fin nuevo bloque
 
     local targetHRP = character:FindFirstChild("HumanoidRootPart")
     if not targetHRP then return end
@@ -827,36 +889,7 @@ end)
 
 if LocalPlayer.Character then monitorCharacter(LocalPlayer, LocalPlayer.Character, true) end
 
--- =====================
--- Remote hook (si usas exploits con setreadonly/newcclosure)
--- =====================
-local function hookRemotes()
-    pcall(function()
-        local remote = remotes.remote
-        local mt = getrawmetatable(game)
-        local oldNamecall = mt.__namecall
-        setreadonly(mt, false)
 
-        mt.__namecall = newcclosure(function(self, ...)
-            local args = {...}
-            local method = getnamecallmethod()
-
-             if self == remote and method == "FireServer" and args[1] == "NormalAttack" then
-                if Config.redirectEnabled then
-                    redirectActive = true
-                    task.delay(0.5, function() redirectActive = false end)
-                end
-            end
-
-
-            return oldNamecall(self, ...)
-        end)
-
-        setreadonly(mt, true)
-    end)
-end
-
-hookRemotes()
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
