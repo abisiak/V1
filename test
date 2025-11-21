@@ -1085,7 +1085,7 @@ local ProjectileParry = {
            end,
            radius = 43,
            minRadius = 12,
-           minExistence = 0.2,
+           minExistence = 0,
            key = "F",
            debounce = 0.3,
            enabled = true,
