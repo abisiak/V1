@@ -1040,7 +1040,7 @@ local ProjectileParry = {
             minRadius = 12, -- si quieres ignorar por estar demasiado cerca usa >0, p.ej. 2 o 8
             minExistence = 0, 
             key = "F",
-            debounce = 10,
+            debounce = 0.3,
             enabled = true,
         },
         BloodSpear = {
@@ -1063,7 +1063,7 @@ local ProjectileParry = {
             minRadius = 12,
             minExistence = 1.3,
             key = "F",
-            debounce = 10,
+            debounce = 0.3,
             enabled = true,
         },
 
@@ -1087,7 +1087,7 @@ local ProjectileParry = {
            minRadius = 12,
            minExistence = 0,
            key = "F",
-           debounce = 10,
+           debounce = 0.3,
            enabled = true,
         },
 
