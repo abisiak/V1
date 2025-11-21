@@ -1059,7 +1059,7 @@ local ProjectileParry = {
                 end
                 return false
             end,
-            radius = 37,
+            radius = 45,
             minRadius = 12,
             minExistence = 0.4,
             key = "F",
