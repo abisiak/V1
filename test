@@ -1049,7 +1049,7 @@ local ProjectileParry = {
                 return false
             end,
             radius = 37,
-            minRadius = 12, -- si quieres ignorar por estar demasiado cerca usa >0, p.ej. 2 o 8
+            minRadius = 10, -- si quieres ignorar por estar demasiado cerca usa >0, p.ej. 2 o 8
             minExistence = 0, 
             key = "F",
             debounce = 0.3,
@@ -1072,7 +1072,7 @@ local ProjectileParry = {
                 return false
             end,
             radius = 45,
-            minRadius = 12,
+            minRadius = 10,
             minExistence = 0.4,
             key = "F",
             debounce = 0.3,
@@ -1095,8 +1095,8 @@ local ProjectileParry = {
                end
                return false
            end,
-           radius = 43,
-           minRadius = 12,
+           radius = 45,
+           minRadius = 10,
            minExistence = 0,
            key = "F",
            debounce = 0.3,
