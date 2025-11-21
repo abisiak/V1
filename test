@@ -568,7 +568,7 @@ end)
 -- =====================
 local function getEffectiveKey(id, originalKey)
     -- sólo cuando redirectActive está ON (y la anim está en la lista) redirigimos R -> F
-    if redirectActive and originalKey == "R" and Config.redirectAnimations[id] then
+    if redirectActive and originalKey == "R" and Config.redirectAnimations and Config.redirectAnimations[id] then
         return "F"
     end
     return originalKey
@@ -576,13 +576,13 @@ end
 
 
 
-local function isValidReaction(player, id, distance, isLocal, enemyHRP, Config)
-    if not Config then return false end
+local function isValidReaction(player, id, distance, isLocal, enemyHRP, cfg)
+    if not cfg then return false end
 
     -- reproduce la lógica antigua explícita de localAllowed:
-    if Config.localAllowed and not isLocal then return false end
-    if (Config.localAllowed == false) and isLocal then return false end
-    -- (nota: si Config.localAllowed == nil -> no filtra por local)
+    if cfg.localAllowed and not isLocal then return false end
+    if (cfg.localAllowed == false) and isLocal then return false end
+    -- (nota: si cfg.localAllowed == nil -> no filtra por local)
 
     if not LocalPlayer or not LocalPlayer.Character then return false end
     local HRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -590,18 +590,17 @@ local function isValidReaction(player, id, distance, isLocal, enemyHRP, Config)
     if not enemyHRP or not enemyHRP.Parent then return false end
 
     -- rango (defaults seguros)
-    local rmin = (Config.range and Config.range.min) or 0
-    local rmax = (Config.range and Config.range.max) or math.huge
+    local rmin = (cfg.range and cfg.range.min) or 0
+    local rmax = (cfg.range and cfg.range.max) or math.huge
     if distance < rmin or distance > rmax then return false end
 
     -- estado humano / hybrid (usa isPlayerHybrid sobre el actor 'player' pasado)
-   if Config.state then
-    -- comportamiento antiguo: chequear el estado del JUGADOR LOCAL
-    local hybrid = isPlayerHybrid()
-    if Config.state == "hybrid" and not hybrid then return false end
-    if Config.state == "human" and hybrid then return false end
+    if cfg.state then
+        -- comportamiento antiguo: chequear el estado del JUGADOR LOCAL
+        local hybrid = isPlayerHybrid()
+        if cfg.state == "hybrid" and not hybrid then return false end
+        if cfg.state == "human" and hybrid then return false end
     end
-
 
     -- PARCHE DE COOLDOWN (igual que tu versión antigua)
     local identifier = "unknown"
@@ -617,13 +616,13 @@ local function isValidReaction(player, id, distance, isLocal, enemyHRP, Config)
         identifier = tostring(player)
     end
     local key = identifier .. ":" .. tostring(id)
-    if recentReactions[key] and tick() - recentReactions[key] < (config.delay or 0) then
+    if recentReactions[key] and tick() - recentReactions[key] < (cfg.delay or 0) then
         return false
     end
 
-    -- visión angular
-    if config.rv ~= false and distance >= 2 then
-        local maxAngle = Config.getMaxAngleForDistance(distance)
+    -- visión angular (usa cfg.rv en lugar de config)
+    if cfg.rv ~= false and distance >= 2 then
+        local maxAngle = Config.getMaxAngleForDistance(distance) -- esto usa la función global Config
         local enemyLookVector = enemyHRP.CFrame.LookVector
         local dirVec = HRP.Position - enemyHRP.Position
         if dirVec.Magnitude ~= 0 then
@@ -638,7 +637,6 @@ local function isValidReaction(player, id, distance, isLocal, enemyHRP, Config)
 
     return true
 end
-
 local function react(playerObj, id, cfg)
     if not cfg then return end
     local keyToUse = getEffectiveKey(id, cfg.key or cfg.reaction)
@@ -693,11 +691,6 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
     local character = getCharacterFromOwner(owner)
     if not character then return end
 
-        local id = track.Animation.AnimationId:match("%d+")
-    if not id then return end
-
-    local character = getCharacterFromOwner(owner)
-    if not character then return end
 
     -- >>> NUEVO: si es mi anim local y es una M1, activar redirect temporal
     if isLocal and Config.m1AnimationIds[id] and Config.redirectEnabled then
