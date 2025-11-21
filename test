@@ -269,9 +269,9 @@ local animationReactions = {
 --katanaman x1
 	["12536618082"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
 --Parykicks
-	["11412413067"] = { key = "m1", delay = 0.18, range = {min = 0, max = 2}, localAllowed = true , rv = false},
-	["11367862252"] = { key = "m1", delay = 0.18, range = {min = 0, max = 2}, localAllowed = true , rv = false},
-	["8544289138"] = { key = "m1", delay = 0.18, range = {min = 0, max = 2}, localAllowed = true , rv = false},
+	["11412413067"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["11367862252"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false},
+	["8544289138"] = { key = "m1", delay = 0.18, range = {min = 0, max = 30}, localAllowed = true , rv = false},
 -- ghost punch
 	["11805720948"] = { key = "Q", delay = 0.4, range = {min = 0, max = 28}, rv = false },
 --bomb X
@@ -1038,6 +1038,7 @@ local ProjectileParry = {
             end,
             radius = 37,
             minRadius = 12, -- si quieres ignorar por estar demasiado cerca usa >0, p.ej. 2 o 8
+            minExistence = 0, 
             key = "F",
             debounce = 10,
             enabled = true,
@@ -1045,51 +1046,100 @@ local ProjectileParry = {
         BloodSpear = {
             name = "BloodSpear",
             matcher = function(inst)
-                local name = tostring(inst.Name):lower()
-                if name:find("bloodspear") then return true end
-                local p = inst.Parent
-                while p do
-                    if tostring(p.Name):lower():find("bloodspear") then return true end
-                    p = p.Parent
+                -- queremos detectar exactamente el Mesh dentro de BloodSpear:
+                -- workspace.EFFECT.BloodSpear.Mesh
+                if not inst then return false end
+                -- si el objeto es una BasePart y su nombre es "Mesh" y su padre es "BloodSpear"
+                if inst:IsA("BasePart") and tostring(inst.Name) == "Mesh" and inst.Parent and tostring(inst.Parent.Name) == "BloodSpear" then
+                    return true
+                end
+                -- si es un SpecialMesh (u otro) llamado "Mesh" dentro de una part llamada BloodSpear
+                if tostring(inst.Name) == "Mesh" and inst.Parent and inst.Parent:IsA("BasePart") and inst.Parent.Parent and tostring(inst.Parent.Parent.Name) == "BloodSpear" then
+                    return true
                 end
                 return false
             end,
             radius = 37,
             minRadius = 12,
+            minExistence = 0.7,
             key = "F",
             debounce = 10,
             enabled = true,
         },
+
         SawBlade = {
-    name = "SawBlade",
-    -- MATCHER ESTRICTO: solo coincide si el nombre EXACTO es "SawBlade"
-    matcher = function(inst)
-        -- no tolerancia: solo nombre exacto
-        return tostring(inst.Name) == "SawBlade"
-    end,
-    radius = 3,
-    minRadius = 6,
-    minExistence = 0, -- reaccion inmediata por defecto para este tipo (puedes ajustar)
-    key = "F",
-    debounce = 10,
-    enabled = true,
-},
+           name = "SawBlade",
+           -- MATCHER ESTRICTO: detecta el Attachment llamado "Attachment" dentro de la parte "SawBlade"
+           matcher = function(inst)
+               if not inst then return false end
+               -- si es Attachment y su parent se llama "SawBlade"
+               if inst:IsA("Attachment") and tostring(inst.Name) == "Attachment" and inst.Parent and tostring(inst.Parent.Name) == "SawBlade" then
+                   return true
+               end
+               -- fallback estricto: si es la parte "SawBlade" (por compatibilidad), permitimos también
+               if inst:IsA("BasePart") and tostring(inst.Name) == "SawBlade" then
+                   -- preferimos el Attachment si existe, pero aún así devolvemos true para watchear la parte
+                   return true
+               end
+               return false
+           end,
+           radius = 37,
+           minRadius = 12,
+           minExistence = 0,
+           key = "F",
+           debounce = 10,
+           enabled = true,
+        },
+
 
     },
 
-    getPositionFromInstance = function(inst)
-        if not inst then return nil end
-        if inst:IsA("BasePart") then return inst.Position end
-        if inst:IsA("Model") then
-            if inst.PrimaryPart and inst.PrimaryPart:IsA("BasePart") then return inst.PrimaryPart.Position end
-            local bp = inst:FindFirstChildWhichIsA("BasePart", true)
-            if bp then return bp.Position end
-        else
-            local bp = inst:FindFirstChildWhichIsA("BasePart", true)
-            if bp then return bp.Position end
+getPositionFromInstance = function(inst)
+    if not inst then return nil end
+
+    -- Solo operar si es una Instance válida
+    if typeof(inst) == "Instance" then
+        -- Attachment: usamos WorldPosition (útil para SawBlade.Attachment)
+        if inst:IsA("Attachment") then
+            local ok, pos = pcall(function() return inst.WorldPosition end)
+            if ok and pos then return pos end
         end
-        return nil
-    end,
+
+        -- Si es un BasePart (Part, MeshPart, etc.)
+        if inst:IsA("BasePart") then
+            return inst.Position
+        end
+
+        -- SpecialMesh: tomar la posición de su parent si es BasePart
+        if inst:IsA("SpecialMesh") then
+            local p = inst.Parent
+            if p and typeof(p) == "Instance" and p:IsA("BasePart") then return p.Position end
+        end
+
+        -- Si es Model: PrimaryPart o primer BasePart descendiente
+        if inst:IsA("Model") then
+            if inst.PrimaryPart and typeof(inst.PrimaryPart) == "Instance" and inst.PrimaryPart:IsA("BasePart") then
+                return inst.PrimaryPart.Position
+            end
+            -- usar pcall por seguridad si la API falla por algún motivo
+            if inst.FindFirstChildWhichIsA then
+                local ok, bp = pcall(function() return inst:FindFirstChildWhichIsA("BasePart", true) end)
+                if ok and bp then return bp.Position end
+            end
+        end
+    end
+
+    -- Fallback: intentar usar FindFirstChildWhichIsA si existe en el objeto (cualquier otro tipo)
+    if inst and inst.FindFirstChildWhichIsA then
+        local ok, bp = pcall(function() return inst:FindFirstChildWhichIsA("BasePart", true) end)
+        if ok and bp then return bp.Position end
+    end
+
+    return nil
+end,
+
+
+
 }
 
 local tracked = {} -- tracked[instance] = {typeName, lastTriggered, conn, ignoredDueToTooClose}
