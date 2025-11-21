@@ -113,24 +113,59 @@ local function makeIdentifier(obj)
     return tostring(obj)
 end
 
-local function isModelHybrid(modelOrPlayer)
-    if typeof(modelOrPlayer) == "Instance" and modelOrPlayer:IsA("Player") then
-        local char = modelOrPlayer.Character
+local function containerIsTransformed(container)
+    if not container or typeof(container) ~= "Instance" then return false end
+    local t = container:FindFirstChild("Transformed")
+    if not t then return false end
+    if t:IsA("BoolValue") then
+        return t.Value == true
+    end
+    return true
+end
+
+-- isPlayerHybrid: devuelve true si el player/model/humanoid pasado está 'Transformed'
+local function isPlayerHybrid(target)
+    if not target then return false end
+
+    -- Player: mirar su Character y el Player mismo
+    if typeof(target) == "Instance" and target:IsA("Player") then
+        if containerIsTransformed(target.Character) then return true end
+        if containerIsTransformed(target) then return true end
+        return false
+    end
+
+    -- Humanoid / Animator: subir al modelo padre (character)
+    if typeof(target) == "Instance" and (target:IsA("Humanoid") or target:IsA("Animator")) then
+        local char = target.Parent
+        if containerIsTransformed(char) then return true end
+        local pl = Players:GetPlayerFromCharacter(char)
+        if pl and containerIsTransformed(pl) then return true end
+        return false
+    end
+
+    -- Model: revisar directamente y su player si corresponde
+    if typeof(target) == "Instance" and target:IsA("Model") then
+        if containerIsTransformed(target) then return true end
+        local pl = Players:GetPlayerFromCharacter(target)
+        if pl and containerIsTransformed(pl) then return true end
+        return false
+    end
+
+    -- Fallback: si es una parte/attachment, subir a ancestor Model y repetir
+    if typeof(target) == "Instance" then
+        local char = target.FindFirstAncestorOfClass and target:FindFirstAncestorOfClass("Model")
         if char then
-            local st = char:FindFirstChild("states") or modelOrPlayer:FindFirstChild("states")
-            if st and st:FindFirstChild("Transformed") then return true end
+            if containerIsTransformed(char) then return true end
+            local pl = Players:GetPlayerFromCharacter(char)
+            if pl and containerIsTransformed(pl) then return true end
         end
-        local stp = modelOrPlayer:FindFirstChild("states")
-        if stp and stp:FindFirstChild("Transformed") then return true end
-        return false
     end
-    if typeof(modelOrPlayer) == "Instance" and modelOrPlayer:IsA("Model") then
-        local st = modelOrPlayer:FindFirstChild("states")
-        if st and st:FindFirstChild("Transformed") then return true end
-        return false
-    end
+
     return false
 end
+
+-- (Opcional) Mantener compatibilidad con el nombre anterior
+isModelHybrid = isPlayerHybrid
 
 local function getCharacterFromOwner(owner)
     if not owner then return nil end
@@ -572,41 +607,58 @@ end
 
 
 
-local function isValidReaction(playerObj, id, distance, isLocal, enemyHRP, cfg)
-    if not cfg then return false end
+local function isValidReaction(player, id, distance, isLocal, enemyHRP, config)
+    if not config then return false end
 
-    if isLocal then
-        if not cfg.localAllowed then
-            return false
-        end
-    end
+    -- reproduce la lógica antigua explícita de localAllowed:
+    if config.localAllowed and not isLocal then return false end
+    if (config.localAllowed == false) and isLocal then return false end
+    -- (nota: si config.localAllowed == nil -> no filtra por local)
 
     if not LocalPlayer or not LocalPlayer.Character then return false end
+    local HRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not HRP or not HRP.Parent then return false end
     if not enemyHRP or not enemyHRP.Parent then return false end
 
-    local rmin = (cfg.range and cfg.range.min) or 0
-    local rmax = (cfg.range and cfg.range.max) or math.huge
+    -- rango (defaults seguros)
+    local rmin = (config.range and config.range.min) or 0
+    local rmax = (config.range and config.range.max) or math.huge
     if distance < rmin or distance > rmax then return false end
 
-    if cfg.state then
-        local targetHybrid = false
-        if typeof(playerObj) == "Instance" then
-            targetHybrid = isModelHybrid(playerObj)
+    -- estado humano / hybrid (usa isPlayerHybrid sobre el actor 'player' pasado)
+    if config.state then
+        local hybrid = isPlayerHybrid(player)
+        -- debug opcional:
+        if _G and _G.AutoParryDebug and _G.AutoParryDebug.stateChecks then
+            warn("[StateCheck] id="..tostring(id).." needed="..tostring(config.state).." actorHybrid="..tostring(hybrid).." actor="..tostring(player))
         end
-        if cfg.state == "hybrid" and not targetHybrid then return false end
-        if cfg.state == "human" and targetHybrid then return false end
+        if config.state == "hybrid" and not hybrid then return false end
+        if config.state == "human" and hybrid then return false end
     end
 
-    local identifier = makeIdentifier(playerObj)
+    -- PARCHE DE COOLDOWN (igual que tu versión antigua)
+    local identifier = "unknown"
+    if typeof(player) == "Instance" then
+        if player:IsA("Player") then
+            identifier = "PLR_" .. tostring(player.UserId)
+        elseif player:IsA("Model") then
+            identifier = "NPC_" .. (player.Name or "Unnamed")
+        else
+            identifier = "OBJ_" .. player.ClassName
+        end
+    else
+        identifier = tostring(player)
+    end
     local key = identifier .. ":" .. tostring(id)
-    if recentReactions[key] and tick() - recentReactions[key] < (cfg.delay or 0) then
+    if recentReactions[key] and tick() - recentReactions[key] < (config.delay or 0) then
         return false
     end
 
-    if cfg.rv ~= false and distance >= 2 then
+    -- visión angular
+    if config.rv ~= false and distance >= 2 then
         local maxAngle = Config.getMaxAngleForDistance(distance)
         local enemyLookVector = enemyHRP.CFrame.LookVector
-        local dirVec = (LocalPlayer.Character.HumanoidRootPart.Position - enemyHRP.Position)
+        local dirVec = HRP.Position - enemyHRP.Position
         if dirVec.Magnitude ~= 0 then
             local directionToMe = dirVec.Unit
             local dot = clamp(enemyLookVector:Dot(directionToMe), -1, 1)
