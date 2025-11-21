@@ -124,45 +124,14 @@ local function containerIsTransformed(container)
 end
 
 -- isPlayerHybrid: devuelve true si el player/model/humanoid pasado está 'Transformed'
-local function isPlayerHybrid(target)
-    if not target then return false end
-
-    -- Player: mirar su Character y el Player mismo
-    if typeof(target) == "Instance" and target:IsA("Player") then
-        if containerIsTransformed(target.Character) then return true end
-        if containerIsTransformed(target) then return true end
-        return false
-    end
-
-    -- Humanoid / Animator: subir al modelo padre (character)
-    if typeof(target) == "Instance" and (target:IsA("Humanoid") or target:IsA("Animator")) then
-        local char = target.Parent
-        if containerIsTransformed(char) then return true end
-        local pl = Players:GetPlayerFromCharacter(char)
-        if pl and containerIsTransformed(pl) then return true end
-        return false
-    end
-
-    -- Model: revisar directamente y su player si corresponde
-    if typeof(target) == "Instance" and target:IsA("Model") then
-        if containerIsTransformed(target) then return true end
-        local pl = Players:GetPlayerFromCharacter(target)
-        if pl and containerIsTransformed(pl) then return true end
-        return false
-    end
-
-    -- Fallback: si es una parte/attachment, subir a ancestor Model y repetir
-    if typeof(target) == "Instance" then
-        local char = target.FindFirstAncestorOfClass and target:FindFirstAncestorOfClass("Model")
-        if char then
-            if containerIsTransformed(char) then return true end
-            local pl = Players:GetPlayerFromCharacter(char)
-            if pl and containerIsTransformed(pl) then return true end
-        end
-    end
-
-    return false
+-- igual que tu versión antigua: true si el jugador local tiene states.Transformed (existencia)
+local function isPlayerHybrid()
+    local states = LocalPlayer:FindFirstChild("states")
+    if not states then return false end
+    local transformed = states:FindFirstChild("Transformed")
+    return transformed ~= nil
 end
+
 
 -- (Opcional) Mantener compatibilidad con el nombre anterior
 isModelHybrid = isPlayerHybrid
@@ -607,13 +576,13 @@ end
 
 
 
-local function isValidReaction(player, id, distance, isLocal, enemyHRP, config)
-    if not config then return false end
+local function isValidReaction(player, id, distance, isLocal, enemyHRP, Config)
+    if not Config then return false end
 
     -- reproduce la lógica antigua explícita de localAllowed:
-    if config.localAllowed and not isLocal then return false end
-    if (config.localAllowed == false) and isLocal then return false end
-    -- (nota: si config.localAllowed == nil -> no filtra por local)
+    if Config.localAllowed and not isLocal then return false end
+    if (Config.localAllowed == false) and isLocal then return false end
+    -- (nota: si Config.localAllowed == nil -> no filtra por local)
 
     if not LocalPlayer or not LocalPlayer.Character then return false end
     local HRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -621,20 +590,18 @@ local function isValidReaction(player, id, distance, isLocal, enemyHRP, config)
     if not enemyHRP or not enemyHRP.Parent then return false end
 
     -- rango (defaults seguros)
-    local rmin = (config.range and config.range.min) or 0
-    local rmax = (config.range and config.range.max) or math.huge
+    local rmin = (Config.range and Config.range.min) or 0
+    local rmax = (Config.range and Config.range.max) or math.huge
     if distance < rmin or distance > rmax then return false end
 
     -- estado humano / hybrid (usa isPlayerHybrid sobre el actor 'player' pasado)
-    if config.state then
-        local hybrid = isPlayerHybrid(player)
-        -- debug opcional:
-        if _G and _G.AutoParryDebug and _G.AutoParryDebug.stateChecks then
-            warn("[StateCheck] id="..tostring(id).." needed="..tostring(config.state).." actorHybrid="..tostring(hybrid).." actor="..tostring(player))
-        end
-        if config.state == "hybrid" and not hybrid then return false end
-        if config.state == "human" and hybrid then return false end
+   if Config.state then
+    -- comportamiento antiguo: chequear el estado del JUGADOR LOCAL
+    local hybrid = isPlayerHybrid()
+    if Config.state == "hybrid" and not hybrid then return false end
+    if Config.state == "human" and hybrid then return false end
     end
+
 
     -- PARCHE DE COOLDOWN (igual que tu versión antigua)
     local identifier = "unknown"
@@ -749,14 +716,14 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
     end)
     if not ok or not distance then return end
 
-    local configs = animationReactions[id]
-    if not configs then return end
+    local Configs = animationReactions[id]
+    if not Configs then return end
 
     local list = {}
-    if type(configs) == "table" and configs[1] then
-        for _, v in ipairs(configs) do table.insert(list, v) end
+    if type(Configs) == "table" and Configs[1] then
+        for _, v in ipairs(Configs) do table.insert(list, v) end
     else
-        table.insert(list, configs)
+        table.insert(list, Configs)
     end
 
         local filtered = {}
