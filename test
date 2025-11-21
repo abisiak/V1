@@ -371,7 +371,7 @@ local keyActions = {
     Q = function() remotes.remote:FireServer("Dash", "W", "NoTorsoRotate") end,
     R = function() remotes.remote:FireServer("StrongAttack") end,
     E = function() remotes.remote:FireServer("Skill1") end,
-    k = function() remotes.toolremote:FireServer("Ghot Hand Punch") end,
+    k = function() remotes.toolremote:FireServer("Ghost Hand Punch") end,
     axe = function() remotes.toolremote:FireServer("Claw Slash") end,
     m1 = function()
         remotes.remote:FireServer("NormalAttack")
