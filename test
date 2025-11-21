@@ -293,7 +293,7 @@ local animationReactions = {
 	["12502854533"] = { key = "Q", delay = 0.7, range = {min = 8, max = 45} },
 
 	-- thunder
-	["140319778701762"] = { key = "Q", delay = 0.3, range = {min = 0, max = 35}, rv = false },
+	["140319778701762"] = { key = "Q", delay = 0.5, range = {min = 0, max = 35}, rv = false },
 
 	-- feather
 	["133128238639970"] = { key = "F", delay = 0.2, range = {min = 0, max = 30}, rv = false },
