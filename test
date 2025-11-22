@@ -325,20 +325,20 @@ local animationReactions = {
 	["126438176215231"] = { key = "Q", delay = 0.1, range = {min = 0, max = 35}, rv = false },
 }
 animationReactions["11412048186"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
+    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
     { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 }
 animationReactions["854420980"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },  
+    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },  
     { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 }
 animationReactions["8544209804"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
+    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
     { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 }
 
 animationReactions["11367425425"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
+    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
     { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 }
 
