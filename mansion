@@ -1,3 +1,28 @@
+-- === KEEP-HOP adentro de APv1 ===
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local queue = queue_on_teleport
+    or (syn and syn.queue_on_teleport)
+    or (fluxus and fluxus.queue_on_teleport)
+
+-- Evita duplicar conexiones si reinyectas en el mismo server
+if not getgenv().AP_KEEP_INSTALLED then
+    getgenv().AP_KEEP_INSTALLED = true
+
+    local function arm()
+        if queue then
+            queue([[loadstring(game:HttpGet("https://raw.githubusercontent.com/abisiak/V1/refs/heads/main/mansion"))()]])
+        end
+    end
+
+    -- Lo armo YA para el próximo hop...
+    arm()
+    -- ...y también al momento exacto del teleport (por si tu exec sobreescribe colas).
+    if LP and LP.OnTeleport then
+        LP.OnTeleport:Connect(arm)
+    end
+end
+
 -- Servicios
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
