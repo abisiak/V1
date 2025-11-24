@@ -256,13 +256,23 @@ end)
 -- ======================
 -- Bucle principal (farmeo + reposo)
 -- ======================
+local unleashedOnce = false
 
 task.spawn(function()
     while true do
         if HumanoidRootPart then
             local mob = AUTO_ENABLED and getNextMob() or nil
             if mob then
-                -- farmeo activo
+                if not unleashedOnce then
+                    unleashedOnce = true
+
+                    -- Versión usando tu código original:
+                    -- local args = { "Unleash" }
+                    -- game:GetService("ReplicatedStorage"):WaitForChild("events"):WaitForChild("remote"):FireServer(unpack(args))
+
+                    -- Versión usando el remoto que ya tienes:
+                    remotes.remote:FireServer("Unleash")
+                end
                 handleMob(mob)
             else
                 -- reposo (aunque esté en pausa, te mantiene en REST_POS)
