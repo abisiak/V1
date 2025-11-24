@@ -1,0 +1,263 @@
+-- LocalScript, StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local LivingFolder = workspace:WaitForChild("Living")
+
+-- Remotos
+local eventsFolder = ReplicatedStorage:WaitForChild("events")
+local remotes = {
+    remote = eventsFolder:WaitForChild("remote"),
+}
+
+local function doNormalAttack()
+    remotes.remote:FireServer("NormalAttack")
+end
+
+-- ======================
+-- CONFIG
+-- ======================
+
+-- Drop de mobs ya tocados
+local FARM_POS = Vector3.new(-2507, 945, -38)
+
+-- Caja de ignore (bloque virtual)
+local IGNORE_BOX_CENTER = Vector3.new(-2500, 945, -38)        -- centro del bloque
+local IGNORE_BOX_HALF_SIZE = Vector3.new(78/2, 13/2, 11/2)    -- (39, 6.5, 5.5)
+
+-- Lugar de reposo
+local REST_POS = Vector3.new(-2448, 966, 177)
+local REST_INTERVAL = 0.2
+
+local BEHIND_DISTANCE = 4
+local SEARCH_INTERVAL = 0.2
+local ATTACK_INTERVAL = 0.01
+local MAX_FIGHT_TIME = 10
+
+-- Toggle de farmeo (solo TP/ataque; no afecta el server hop)
+local AUTO_ENABLED = true
+
+-- FILTRO FLEXIBLE
+-- Si USE_WHITELIST = false -> usa lista negra (BLACKLIST)
+-- Si USE_WHITELIST = true  -> solo nombres de WHITELIST
+local USE_WHITELIST = false
+
+local BLACKLIST = {
+    ["NPC"] = true,
+    ["Yakuza Underling"] = true,
+}
+
+local WHITELIST = {
+    -- ["Specter"]  = true,
+    -- ["Specter2"] = true,
+}
+
+-- ======================
+-- UTILS
+-- ======================
+
+local function isInIgnoreBox(worldPos)
+    local dx = worldPos.X - IGNORE_BOX_CENTER.X
+    local dy = worldPos.Y - IGNORE_BOX_CENTER.Y
+    local dz = worldPos.Z - IGNORE_BOX_CENTER.Z
+    return math.abs(dx) <= IGNORE_BOX_HALF_SIZE.X
+       and math.abs(dy) <= IGNORE_BOX_HALF_SIZE.Y
+       and math.abs(dz) <= IGNORE_BOX_HALF_SIZE.Z
+end
+
+local function nightExists()
+    local gs = workspace:FindFirstChild("GameState")
+    return gs and gs:FindFirstChild("Night") ~= nil
+end
+
+local function aliveSpectersExist()
+    for _, mob in ipairs(LivingFolder:GetChildren()) do
+        if (mob.Name == "Specter" or mob.Name == "Specter2") then
+            local h = mob:FindFirstChildOfClass("Humanoid")
+            if h and h.Health > 0 then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function hopToRandomServer()
+    -- Sencillo y robusto: reteleport al mismo Place → Roblox te manda a otra instancia pública
+    pcall(function()
+        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+    end)
+end
+
+-- Referencias al respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+end)
+
+-- FILTRO de mobs válidos (lista negra/blanca + caja ignore + players)
+local function isValidMob(model)
+    if not model:IsA("Model") then return false end
+    if model == Character then return false end
+    if Players:GetPlayerFromCharacter(model) then return false end
+
+    local name = model.Name
+    if USE_WHITELIST then
+        if not WHITELIST[name] then return false end
+    else
+        if BLACKLIST[name] then return false end
+    end
+
+    local humanoid = model:FindFirstChildOfClass("Humanoid")
+    local hrp = model:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not hrp or humanoid.Health <= 0 then return false end
+
+    if isInIgnoreBox(hrp.Position) then return false end
+    return true
+end
+
+local function hasDamageCreditFromPlayer(mob, playerName)
+    local dc = mob:FindFirstChild("DamageCredit")
+    if not dc then return false end
+    for _, child in ipairs(dc:GetChildren()) do
+        if child.Name == playerName then
+            return true
+        end
+    end
+    return false
+end
+
+local function getNextMob()
+    local bestMob, bestDist = nil, math.huge
+    if not HumanoidRootPart then return nil end
+    local myPos = HumanoidRootPart.Position
+    for _, mob in ipairs(LivingFolder:GetChildren()) do
+        if isValidMob(mob) then
+            local hrp = mob:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local d = (hrp.Position - myPos).Magnitude
+                if d < bestDist then
+                    bestDist, bestMob = d, mob
+                end
+            end
+        end
+    end
+    return bestMob
+end
+
+local function tpBehindMob(mob)
+    if not HumanoidRootPart then return end
+    local hrp = mob:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local mobCF = hrp.CFrame
+    local behindPos = mobCF.Position - mobCF.LookVector * BEHIND_DISTANCE
+    HumanoidRootPart.CFrame = CFrame.new(behindPos, mobCF.Position)
+end
+
+local function handleMob(mob)
+    local startTime = tick()
+    while AUTO_ENABLED do
+        local humanoid = mob:FindFirstChildOfClass("Humanoid")
+        local hrp = mob:FindFirstChild("HumanoidRootPart")
+        if not humanoid or not hrp or humanoid.Health <= 0 then return end
+        if isInIgnoreBox(hrp.Position) then return end
+
+        if hasDamageCreditFromPlayer(mob, LocalPlayer.Name) then
+            hrp.CFrame = CFrame.new(FARM_POS)
+            return
+        end
+
+        tpBehindMob(mob)
+        doNormalAttack()
+
+        if tick() - startTime > MAX_FIGHT_TIME then return end
+        task.wait(ATTACK_INTERVAL)
+    end
+end
+
+-- ======================
+-- INICIO: reposo + chequeo de Night
+-- ======================
+
+-- Ir a reposo apenas carga
+task.defer(function()
+    if HumanoidRootPart then
+        HumanoidRootPart.CFrame = CFrame.new(REST_POS)
+    end
+end)
+
+-- Si Night NO existe al inicio → server hop
+task.defer(function()
+    task.wait(0.25) -- pequeño margen por si el GameState tarda en replicar
+    if not nightExists() then
+        hopToRandomServer()
+    end
+end)
+
+-- ======================
+-- Supervisor de Night (independiente de AUTO_ENABLED)
+-- ======================
+
+local pendingHopWhenClear = false
+task.spawn(function()
+    local prevNight = nightExists()
+    while true do
+        local nowNight = nightExists()
+
+        -- Si desaparece Night durante el proceso: marcar hop pendiente
+        if (prevNight == true and nowNight == false) then
+            pendingHopWhenClear = true
+        end
+        prevNight = nowNight
+
+        -- Si hay hop pendiente: esperar a que no queden Specter/Specter2 vivos y hacer hop
+        if pendingHopWhenClear then
+            if not aliveSpectersExist() then
+                hopToRandomServer()
+                pendingHopWhenClear = false
+            end
+        end
+
+        task.wait(0.5)
+    end
+end)
+
+-- ======================
+-- Bucle principal (farmeo + reposo)
+-- ======================
+
+task.spawn(function()
+    while true do
+        if HumanoidRootPart then
+            local mob = AUTO_ENABLED and getNextMob() or nil
+            if mob then
+                -- farmeo activo
+                handleMob(mob)
+            else
+                -- reposo (aunque esté en pausa, te mantiene en REST_POS)
+                HumanoidRootPart.CFrame = CFrame.new(REST_POS)
+                task.wait(REST_INTERVAL)
+            end
+        else
+            task.wait(0.3)
+        end
+    end
+end)
+
+-- ======================
+-- Toggle de farmeo (NO controla hops)
+-- ======================
+local UserInputService = game:GetService("UserInputService")
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.P then
+        AUTO_ENABLED = not AUTO_ENABLED
+        print("Auto farm (TP/attack):", AUTO_ENABLED and "ON" or "OFF", " — Server hop independiente.")
+    end
+end)
