@@ -15,15 +15,15 @@ if not getgenv().AP_KEEP_INSTALLED then
         end
     end
 
-    -- Lo armo YA para el próximo hop...
     arm()
-    -- ...y también al momento exacto del teleport (por si tu exec sobreescribe colas).
     if LP and LP.OnTeleport then
         LP.OnTeleport:Connect(arm)
     end
 end
 
--- LocalScript, StarterPlayerScripts
+-- ======================
+-- Script principal
+-- ======================
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -43,6 +43,13 @@ local remotes = {
 
 local function doNormalAttack()
     remotes.remote:FireServer("NormalAttack")
+end
+
+local function doUnleash()
+    -- Lo mismo que tu snippet:
+    -- local args = { "Unleash" }
+    -- remotes.remote:FireServer(unpack(args))
+    remotes.remote:FireServer("Unleash")
 end
 
 -- ======================
@@ -68,9 +75,10 @@ local MAX_FIGHT_TIME = 10
 -- Toggle de farmeo (solo TP/ataque; no afecta el server hop)
 local AUTO_ENABLED = true
 
+-- El server solo empieza a farmear cuando pase por la secuencia de validación
+local SERVER_VALIDATED = false
+
 -- FILTRO FLEXIBLE
--- Si USE_WHITELIST = false -> usa lista negra (BLACKLIST)
--- Si USE_WHITELIST = true  -> solo nombres de WHITELIST
 local USE_WHITELIST = false
 
 local BLACKLIST = {
@@ -103,7 +111,7 @@ end
 
 local function aliveSpectersExist()
     for _, mob in ipairs(LivingFolder:GetChildren()) do
-        if (mob.Name == "Specter" or mob.Name == "Specter2") then
+        if mob.Name == "Specter" or mob.Name == "Specter2" then
             local h = mob:FindFirstChildOfClass("Humanoid")
             if h and h.Health > 0 then
                 return true
@@ -114,7 +122,6 @@ local function aliveSpectersExist()
 end
 
 local function hopToRandomServer()
-    -- Sencillo y robusto: reteleport al mismo Place → Roblox te manda a otra instancia pública
     pcall(function()
         TeleportService:Teleport(game.PlaceId, LocalPlayer)
     end)
@@ -207,7 +214,7 @@ local function handleMob(mob)
 end
 
 -- ======================
--- INICIO: reposo + chequeo de Night
+-- INICIO: reposo + validación de servidor + Unleash
 -- ======================
 
 -- Ir a reposo apenas carga
@@ -217,12 +224,36 @@ task.defer(function()
     end
 end)
 
--- Si Night NO existe al inicio → server hop
-task.defer(function()
-    task.wait(0.25) -- pequeño margen por si el GameState tarda en replicar
+-- Secuencia de validación:
+-- 1) Esperar un poco por replicación
+-- 2) Si no existe Night -> hop
+-- 3) Si existe Night -> 4s spam REST_POS, en el segundo 3 lanza Unleash
+task.spawn(function()
+    task.wait(0.5) -- margen para que GameState/Night aparezca
+
     if not nightExists() then
         hopToRandomServer()
+        return
     end
+
+    local start = tick()
+    local unleashed = false
+
+    while tick() - start < 4 do
+        if HumanoidRootPart then
+            HumanoidRootPart.CFrame = CFrame.new(REST_POS)
+        end
+
+        local elapsed = tick() - start
+        if elapsed >= 3 and not unleashed then
+            doUnleash()
+            unleashed = true
+        end
+
+        task.wait(0.1)
+    end
+
+    SERVER_VALIDATED = true
 end)
 
 -- ======================
@@ -256,28 +287,23 @@ end)
 -- ======================
 -- Bucle principal (farmeo + reposo)
 -- ======================
-local unleashedOnce = false
 
 task.spawn(function()
     while true do
         if HumanoidRootPart then
-            local mob = AUTO_ENABLED and getNextMob() or nil
-            if mob then
-                if not unleashedOnce then
-                    unleashedOnce = true
-
-                    -- Versión usando tu código original:
-                    -- local args = { "Unleash" }
-                    -- game:GetService("ReplicatedStorage"):WaitForChild("events"):WaitForChild("remote"):FireServer(unpack(args))
-
-                    -- Versión usando el remoto que ya tienes:
-                    remotes.remote:FireServer("Unleash")
-                end
-                handleMob(mob)
-            else
-                -- reposo (aunque esté en pausa, te mantiene en REST_POS)
+            -- Si el server aún no está validado: solo reposo
+            if not SERVER_VALIDATED then
                 HumanoidRootPart.CFrame = CFrame.new(REST_POS)
                 task.wait(REST_INTERVAL)
+            else
+                local mob = AUTO_ENABLED and getNextMob() or nil
+                if mob then
+                    handleMob(mob)
+                else
+                    -- sin mobs válidos -> reposo
+                    HumanoidRootPart.CFrame = CFrame.new(REST_POS)
+                    task.wait(REST_INTERVAL)
+                end
             end
         else
             task.wait(0.3)
