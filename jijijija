@@ -131,7 +131,7 @@ local USE_WHITELIST = false
 
 local BLACKLIST = {
     ["NPC"] = true,
-    ["Yakuza Underling"] = true,
+    ["Yaksdling"] = true,
 }
 
 local WHITELIST = {
