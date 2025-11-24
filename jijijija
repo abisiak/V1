@@ -24,6 +24,49 @@ end
 -- ======================
 -- Script principal
 -- ======================
+local Players = game:GetService("Players")
+local VIM = game:GetService("VirtualInputManager")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Esperar al botón PlayButton
+local mainMenu = PlayerGui:WaitForChild("MainMenu")
+local menu = mainMenu:WaitForChild("Menu")
+local innerMainMenu = menu:WaitForChild("MainMenu")
+local playButton = innerMainMenu:WaitForChild("PlayButton")
+
+-- Función genérica: click centro del GUI + offset Y
+local function clickGui(guiObj, yOffset)
+	if not guiObj then
+		warn("GUI nulo")
+		return
+	end
+
+	-- Por si quieres ver los datos en la consola
+	print("ABS POS:", guiObj.AbsolutePosition, "ABS SIZE:", guiObj.AbsoluteSize)
+
+	local absPos = guiObj.AbsolutePosition
+	local absSize = guiObj.AbsoluteSize
+	local center = absPos + (absSize / 2)
+
+	local x = center.X
+	local y = center.Y + (yOffset or 0)
+
+	-- Mover el mouse ahí (algunos juegos lo agradecen)
+	VIM:SendMouseMoveEvent(x, y, game)
+	task.wait()
+
+	-- Click izquierdo down + up
+	VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+	task.wait()
+	VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+-- Esperar un poco a que todo cargue y luego clickear con offset +50 en Y
+task.delay(2, function()
+	clickGui(playButton, 50)
+end)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
