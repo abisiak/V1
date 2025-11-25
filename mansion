@@ -187,7 +187,7 @@ root.CFrame = CFrame.new(1136, 1600, -985)
     -- DETONANTE 2.3    
     elseif texto:match("Defeat the weird sideburns guy%.") then    
         warn("[DETONANTE 2.3] Defeat the weird sideburns guy")    
-        task.delay(1, function()    
+        task.delay(0.1, function()    
             activarAsesinato = true    
         end)    
 
