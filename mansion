@@ -143,7 +143,11 @@ forzarCamara = true
                 warn("[TP] Reposicionando a zona inicial de fiends")    
                 local root = getRoot(player.Character)    
                 if root then    
-                    root.CFrame = CFrame.new(1136, 1600, -985)    
+                    root.CFrame = CFrame.new(1136, 1600, -985)
+wait()    
+root.CFrame = CFrame.new(1136, 1600, -985)
+wait()
+root.CFrame = CFrame.new(1136, 1600, -985)
                 end    
                 task.wait(6)    
             end    
