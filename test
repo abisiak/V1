@@ -391,7 +391,7 @@ local keyActions = {
         -- activar redirección temporal SOLAMENTE si el toggle persistente lo permite
         if Config.redirectEnabled then
             redirectActive = true
-            task.delay(0.8, function() redirectActive = false end)
+            task.delay(2, function() redirectActive = false end)
         end
     end,
 
@@ -717,7 +717,7 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
     -- >>> NUEVO: si es mi anim local y es una M1, activar redirect temporal
     if isLocal and Config.m1AnimationIds[id] and Config.redirectEnabled then
         redirectActive = true
-        task.delay(0.8, function() redirectActive = false end)
+        task.delay(2, function() redirectActive = false end)
     end
     -- <<< fin nuevo bloque
 
