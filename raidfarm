@@ -281,6 +281,7 @@ task.spawn(function()
 
                     wait(2)
 
+                    local args = {
  	                "Ghost Hand Choke"
                     }
                     game:GetService("ReplicatedStorage"):WaitForChild("events"):WaitForChild("toolremote"):FireServer(unpack(args))
@@ -296,6 +297,7 @@ task.spawn(function()
 
                     wait(0.5)
 
+                    local args = {
 	                "Ghost Hand Choke"
                     }
                     game:GetService("ReplicatedStorage"):WaitForChild("events"):WaitForChild("toolremote"):FireServer(unpack(args))
