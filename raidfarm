@@ -280,7 +280,10 @@ task.spawn(function()
                     end
 
                     wait(2)
-                    presionarTecla2()
+
+ 	                "Ghost Hand Choke"
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("events"):WaitForChild("toolremote"):FireServer(unpack(args))
 
                     wait(2)
                     local humanoid = zombie:FindFirstChildOfClass("Humanoid")
@@ -292,7 +295,10 @@ task.spawn(function()
                     end
 
                     wait(0.5)
-                    presionarTecla2()
+
+	                "Ghost Hand Choke"
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("events"):WaitForChild("toolremote"):FireServer(unpack(args))
 
                     -- Paso final tras matar al zombie
                     task.wait(1)
