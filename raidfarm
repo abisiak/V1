@@ -86,7 +86,7 @@ local function crearTeleportGui()
     local label = Instance.new("TextLabel")
     label.Name = "Texto"
     label.BackgroundTransparency = 1
-    label.Text = "Teleporting..."
+    label.Text = ""
     label.Font = Enum.Font.GothamBold
     label.TextSize = 40
     label.TextColor3 = Color3.new(1, 1, 1)
