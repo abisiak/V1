@@ -7,7 +7,7 @@ local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 -- estado runtime temporal (no lo expongas en la UI)
-local redirectActive = false
+local redirectUntil = 0
 
 -- =====================
 -- Config (editable desde GUI / módulo externo)
@@ -390,9 +390,8 @@ local keyActions = {
         remotes.remote:FireServer("NormalAttack")
         -- activar redirección temporal SOLAMENTE si el toggle persistente lo permite
         if Config.redirectEnabled then
-            redirectActive = true
-            task.delay(10, function() redirectActive = false end)
-        end
+        redirectUntil = tick() + 10  -- 10 segundos desde AHORA
+    end
     end,
 
     hammer = function() remotes.toolremote:FireServer("Blood Hammer Slam") end,
@@ -586,14 +585,18 @@ end)
 
 
 local function getEffectiveKey(id, originalKey)
-    -- sólo cuando redirectActive está ON (y la anim está en la lista) redirigimos R -> F
-if redirectActive and (originalKey == "R" or originalKey == "E")
-   and Config.redirectAnimations
-   and Config.redirectAnimations[id] then
-    return "FFF"
-end
+    local now = tick()
+    local redirectActiveNow = (now <= redirectUntil)
+
+    if redirectActiveNow
+       and (originalKey == "R" or originalKey == "E")
+       and Config.redirectAnimations
+       and Config.redirectAnimations[id] then
+        return "F"
+    end
     return originalKey
 end
+
 
 
 
@@ -715,10 +718,10 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
 
 
     -- >>> NUEVO: si es mi anim local y es una M1, activar redirect temporal
-    if isLocal and Config.m1AnimationIds[id] and Config.redirectEnabled then
-        redirectActive = true
-        task.delay(10, function() redirectActive = false end)
-    end
+if isLocal and Config.m1AnimationIds[id] and Config.redirectEnabled then
+    redirectUntil = tick() + 10
+end
+
     -- <<< fin nuevo bloque
 
     local targetHRP = character:FindFirstChild("HumanoidRootPart")
