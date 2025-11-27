@@ -92,6 +92,7 @@ task.spawn(function()
         -- Recrear si no existen
         local blur1 = getBlur("RaidBlur1")
         local blur2 = getBlur("RaidBlur2")
+        local blur3 = getBlur("RaidBlur3")
 
         if blurRaidActivo then
             -- Ajusta la potencia total sumando los dos
@@ -100,6 +101,9 @@ task.spawn(function()
 
             blur2.Enabled = true
             blur2.Size = 20    -- Blur adicional (sumado encima)
+            
+            blur3.Enabled = true
+            blur3.Size = 20  
 
         else
             blur1.Size = 0
