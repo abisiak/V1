@@ -71,16 +71,10 @@ end
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
--- === Datos de tu captura ===
-local CAM_POS   = Vector3.new(1218.646, 1777.767, -834.123)
-local FOCUS_POS = Vector3.new(1194.452, 1761.865, -828.518)
-
-
-
 local FixedCam = {
     enabled = false,
-    pos = CAM_POS,
-    focus = FOCUS_POS,
+    pos = Vector3.new(1218.646, 1777.767, -834.123),
+    focus = Vector3.new(1194.452, 1761.865, -828.518),
     _rs = nil,
     _curCamConn = nil,
     _typeConn = nil,
@@ -88,82 +82,56 @@ local FixedCam = {
 
 -- ======== PRESETS DE CÁMARA ========
 local CamPresets = {
-    -- Usa los que quieras y cambia coords
-    t1_risk = { -- para DETONANTE 1
+    t1_risk = {
         pos   = Vector3.new(1218.646, 1777.767, -834.123),
         focus = Vector3.new(1194.452, 1761.865, -828.518),
     },
-    fiends_intro = { -- DETONANTE 2.0 (ejemplo, cambia tú)
+    fiends_intro = {
         pos   = Vector3.new(1100, 16150, -990),
         focus = Vector3.new(1136, 16000, -985),
     },
-    neon_meet = { -- DETONANTE 2.1 (ejemplo)
+    neon_meet = {
         pos   = Vector3.new(1005, 1680, -845),
         focus = Vector3.new(1024, 1661.17, -825),
     },
-    wave5_zombie = { -- DETONANTE 3.1 (ejemplo)
+    wave5_zombie = {
         pos   = Vector3.new(84, 78, -40),
         focus = Vector3.new(84, 44, -9),
     },
 }
 
+-- Aplica cámara fija
 function FixedCam:_apply()
     local cam = workspace.CurrentCamera
     if not cam then return end
 
-    -- Tipo Scriptable + CFrame/lookAt exacto para mantener la dirección
-    if cam.CameraType ~= Enum.CameraType.Scriptable then
-        cam.CameraType = Enum.CameraType.Scriptable
-    end
-    local cf = CFrame.new(self.pos, self.focus)
-    cam.CFrame = cf
-    cam.Focus  = CFrame.new(self.focus) -- por compatibilidad, aunque Scriptable usa el CFrame
+    cam.CameraType = Enum.CameraType.Scriptable
+    cam.CFrame = CFrame.new(self.pos, self.focus)
+    cam.Focus = CFrame.new(self.focus)
 end
 
+-- Activa cámara
 function FixedCam:enable()
     if self.enabled then return end
     self.enabled = true
     self:_apply()
 
-    -- Reaplicar cada frame para vencer cualquier intento de moverla
+    -- Reaplicar cada frame
     self._rs = RunService.RenderStepped:Connect(function()
         if self.enabled then
             self:_apply()
         end
     end)
 
-    -- Si Roblox reemplaza la cámara (respawn/teleport), la retomamos
+    -- Si Roblox reemplaza CurrentCamera
     self._curCamConn = workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
         if self.enabled then
-            task.wait() -- deja que se asigne la nueva cámara
+            task.wait()
             self:_apply()
-            if self._typeConn then self._typeConn:Disconnect() end
-            local cam = workspace.CurrentCamera
-            if cam then
-                self._typeConn = cam:GetPropertyChangedSignal("CameraType"):Connect(function()
-                    if self.enabled then self:_apply() end
-                end)
-            end
         end
     end)
--- ======== EXTENSIONES DE FixedCam ========
-function FixedCam:usePreset(key)
-    local p = CamPresets[key]
-    if not p then return warn("[FixedCam] preset no encontrado:", key) end
-    self:set(p.pos, p.focus)
-    self:enable()
-end
 
--- opcional: activa y apaga solo tras 'sec' segundos
-function FixedCam:play(key, sec)
-    self:usePreset(key)
-    if sec and sec > 0 then
-        task.delay(sec, function()
-            if self.enabled then self:disable() end
-        end)
-    end
-end
-    -- Primer hook de CameraType para la cámara actual
+    -- Hook a CameraType
     local cam = workspace.CurrentCamera
     if cam then
         self._typeConn = cam:GetPropertyChangedSignal("CameraType"):Connect(function()
@@ -172,25 +140,49 @@ end
     end
 end
 
+-- Desactiva cámara
 function FixedCam:disable()
     self.enabled = false
-    if self._rs then self._rs:Disconnect(); self._rs = nil end
-    if self._curCamConn then self._curCamConn:Disconnect(); self._curCamConn = nil end
-    if self._typeConn then self._typeConn:Disconnect(); self._typeConn = nil end
+
+    if self._rs then self._rs:Disconnect() self._rs = nil end
+    if self._curCamConn then self._curCamConn:Disconnect() self._curCamConn = nil end
+    if self._typeConn then self._typeConn:Disconnect() self._typeConn = nil end
 
     local cam = workspace.CurrentCamera
     if cam then
         cam.CameraType = Enum.CameraType.Custom
-        local lp = Players.LocalPlayer
-        local hum = lp and lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
-        if hum then cam.CameraSubject = hum end
+        local hum = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            cam.CameraSubject = hum
+        end
     end
 end
 
+-- Cambiar coords
 function FixedCam:set(newPos, newFocus)
-    self.pos = newPos or self.pos
-    self.focus = newFocus or self.focus
+    if newPos then self.pos = newPos end
+    if newFocus then self.focus = newFocus end
     if self.enabled then self:_apply() end
+end
+
+-- Usar preset
+function FixedCam:usePreset(key)
+    local p = CamPresets[key]
+    if not p then return warn("[FixedCam] preset no encontrado:", key) end
+    self:set(p.pos, p.focus)
+    self:enable()
+end
+
+-- Activar preset y apagar sólo después de X segundos
+function FixedCam:play(key, sec)
+    self:usePreset(key)
+    if sec and sec > 0 then
+        task.delay(sec, function()
+            if self.enabled then
+                self:disable()
+            end
+        end)
+    end
 end
 
 -- ====== Uso:
