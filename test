@@ -278,6 +278,10 @@ local animationReactions = {
 	["12536648018"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
 --katanaman x1
 	["12536618082"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
+
+--parrykick
+	["11382791600"] = { key = "F", delay = 0, range = {min = 0, max = 40}, rv = false },
+
 --Parykicks
 	["11412413067"] = { key = "m1", delay = 0, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
 	["11367862252"] = { key = "m1", delay = 0, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
