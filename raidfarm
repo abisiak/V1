@@ -67,41 +67,52 @@ local function matarNPCs()
     end
 end
 
--- ========= BLUR DE RAIDS =========
+-- ========= BLUR DE RAIDS (DOBLE BLUR) =========
 
-local function crearRaidBlur()
+local function crearBlur(nombre)
     local blur = Instance.new("BlurEffect")
-    blur.Name = "RaidBlur"
-    blur.Size = 0              -- el tamaño real lo ponemos en el loop
+    blur.Name = nombre
+    blur.Size = 0
     blur.Enabled = false
     blur.Parent = Lighting
     return blur
 end
 
-local function getRaidBlur()
-    local blur = Lighting:FindFirstChild("RaidBlur")
+local function getBlur(nombre)
+    local blur = Lighting:FindFirstChild(nombre)
     if not blur then
-        blur = crearRaidBlur()
+        blur = crearBlur(nombre)
     end
     return blur
 end
 
--- Loop que mantiene el blur vivo y sincronizado con la flag
+-- Loop que se asegura de que los 2 blur existan y sigan tu flag
 task.spawn(function()
     while true do
-        local blur = getRaidBlur()
+        -- Recrear si no existen
+        local blur1 = getBlur("RaidBlur1")
+        local blur2 = getBlur("RaidBlur2")
 
         if blurRaidActivo then
-            blur.Enabled = true
-            blur.Size = 40      -- intensidad del blur (ajustable)
+            -- Ajusta la potencia total sumando los dos
+            blur1.Enabled = true
+            blur1.Size = 20    -- Blur primario
+
+            blur2.Enabled = true
+            blur2.Size = 20    -- Blur adicional (sumado encima)
+
         else
-            blur.Size = 0
-            blur.Enabled = false
+            blur1.Size = 0
+            blur1.Enabled = false
+
+            blur2.Size = 0
+            blur2.Enabled = false
         end
 
         task.wait(0.2)
     end
 end)
+
 
 
 -- ========= GUI de Teleport =========
