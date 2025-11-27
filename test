@@ -384,7 +384,7 @@ local keyActions = {
         -- activar redirección temporal SOLAMENTE si el toggle persistente lo permite
         if Config.redirectEnabled then
             redirectActive = true
-            task.delay(0.7, function() redirectActive = false end)
+            task.delay(0.4, function() redirectActive = false end)
         end
     end,
 
@@ -574,7 +574,7 @@ end)
 -- =====================
 local function getEffectiveKey(id, originalKey)
     -- sólo cuando redirectActive está ON (y la anim está en la lista) redirigimos R -> F
-    if redirectActive and originalKey == "R" and Config.redirectAnimations and Config.redirectAnimations[id] then
+    if redirectActive and originalKey == "R" or originalKey == "E" and Config.redirectAnimations and Config.redirectAnimations[id] then
         return "F"
     end
     return originalKey
