@@ -67,6 +67,99 @@ local function matarNPCs()
     end
 end
 
+-- ========= Cinematic Fixed Camera (self-healing) =========
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- === Datos de tu captura ===
+local CAM_POS   = Vector3.new(1218.646, 1777.767, -834.123)
+local FOCUS_POS = Vector3.new(1194.452, 1761.865, -828.518)
+
+local FixedCam = {
+    enabled = false,
+    pos = CAM_POS,
+    focus = FOCUS_POS,
+    _rs = nil,
+    _curCamConn = nil,
+    _typeConn = nil,
+}
+
+function FixedCam:_apply()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+
+    -- Tipo Scriptable + CFrame/lookAt exacto para mantener la dirección
+    if cam.CameraType ~= Enum.CameraType.Scriptable then
+        cam.CameraType = Enum.CameraType.Scriptable
+    end
+    local cf = CFrame.new(self.pos, self.focus)
+    cam.CFrame = cf
+    cam.Focus  = CFrame.new(self.focus) -- por compatibilidad, aunque Scriptable usa el CFrame
+end
+
+function FixedCam:enable()
+    if self.enabled then return end
+    self.enabled = true
+    self:_apply()
+
+    -- Reaplicar cada frame para vencer cualquier intento de moverla
+    self._rs = RunService.RenderStepped:Connect(function()
+        if self.enabled then
+            self:_apply()
+        end
+    end)
+
+    -- Si Roblox reemplaza la cámara (respawn/teleport), la retomamos
+    self._curCamConn = workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+        if self.enabled then
+            task.wait() -- deja que se asigne la nueva cámara
+            self:_apply()
+            if self._typeConn then self._typeConn:Disconnect() end
+            local cam = workspace.CurrentCamera
+            if cam then
+                self._typeConn = cam:GetPropertyChangedSignal("CameraType"):Connect(function()
+                    if self.enabled then self:_apply() end
+                end)
+            end
+        end
+    end)
+
+    -- Primer hook de CameraType para la cámara actual
+    local cam = workspace.CurrentCamera
+    if cam then
+        self._typeConn = cam:GetPropertyChangedSignal("CameraType"):Connect(function()
+            if self.enabled then self:_apply() end
+        end)
+    end
+end
+
+function FixedCam:disable()
+    self.enabled = false
+    if self._rs then self._rs:Disconnect(); self._rs = nil end
+    if self._curCamConn then self._curCamConn:Disconnect(); self._curCamConn = nil end
+    if self._typeConn then self._typeConn:Disconnect(); self._typeConn = nil end
+
+    local cam = workspace.CurrentCamera
+    if cam then
+        cam.CameraType = Enum.CameraType.Custom
+        local lp = Players.LocalPlayer
+        local hum = lp and lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
+        if hum then cam.CameraSubject = hum end
+    end
+end
+
+function FixedCam:set(newPos, newFocus)
+    self.pos = newPos or self.pos
+    self.focus = newFocus or self.focus
+    if self.enabled then self:_apply() end
+end
+
+-- ====== Uso:
+-- FixedCam:enable()      -- bloquear cámara en tus coords y mantener mirada
+-- FixedCam:disable()     -- devolver control al sistema
+-- FixedCam:set(Vector3.new(x,y,z), Vector3.new(xf,yf,zf)) -- cambiar destino cuando quieras
+
+
 -- ========= BLUR DE RAIDS (DOBLE BLUR) =========
 
 local function crearBlur(nombre)
@@ -286,6 +379,7 @@ if texto:match("Your life is in risk!%s+Leaving will result in punishment%.") an
                     end
                 end)
                 blurRaidActivo = true
+                FixedCam:enable()
 
             -- DETONANTE 2.1
             elseif texto:match("Meet the neon hunter%.") then
