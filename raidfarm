@@ -22,7 +22,6 @@ if not getgenv().AP_KEEP_INSTALLED then
         LP.OnTeleport:Connect(arm)
     end
 end
-
 -- Servicios
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
