@@ -702,7 +702,7 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
     -- >>> NUEVO: si es mi anim local y es una M1, activar redirect temporal
     if isLocal and Config.m1AnimationIds[id] and Config.redirectEnabled then
         redirectActive = true
-        task.delay(0.7, function() redirectActive = false end)
+        task.delay(0.4, function() redirectActive = false end)
     end
     -- <<< fin nuevo bloque
 
