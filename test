@@ -379,6 +379,7 @@ animationReactions["5502543898"] = {
 -- =====================
 local keyActions = {
     F = function() remotes.remote:FireServer("Parry") end,
+    FFF = function() remotes.remote:FireServer("Parre") end,
     Q = function() remotes.remote:FireServer("Dash", "W", "NoTorsoRotate") end,
     R = function() remotes.remote:FireServer("StrongAttack") end,
     E = function() remotes.remote:FireServer("Skill1") end,
@@ -588,7 +589,7 @@ local function getEffectiveKey(id, originalKey)
 if redirectActive and (originalKey == "R" or originalKey == "E")
    and Config.redirectAnimations
    and Config.redirectAnimations[id] then
-    return "F"
+    return "FFF"
 end
     return originalKey
 end
