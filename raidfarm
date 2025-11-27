@@ -41,6 +41,7 @@ local ultimoTexto = ""
 local meetHunterDetectado = false
 local textoFiendActivo = false
 local ejecutando = false
+local teleportOverlayActivo = false
 
 -- Excepcion NPC
 local excepcionNPC = "Zombie Devil"
@@ -61,6 +62,75 @@ local function matarNPCs()
         end
     end
 end
+
+-- ========= GUI de Teleport =========
+
+local function crearTeleportGui()
+    local playerGui = player:WaitForChild("PlayerGui")
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "TeleportOverlay"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    gui.Parent = playerGui
+
+    local bg = Instance.new("Frame")
+    bg.Name = "Background"
+    bg.BackgroundColor3 = Color3.new(0, 0, 0)
+    bg.BorderSizePixel = 0
+    bg.Position = UDim2.new(0, 0, 0, 0)
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.Parent = gui
+
+    local label = Instance.new("TextLabel")
+    label.Name = "Texto"
+    label.BackgroundTransparency = 1
+    label.Text = "Teleporting..."
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 40
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.AnchorPoint = Vector2.new(0.5, 0.5)
+    label.Position = UDim2.new(0.5, 0, 0.5, 0)
+    label.Size = UDim2.new(0, 400, 0, 100)
+    label.Parent = bg
+
+    gui.Enabled = false -- se controla con la flag
+    return gui
+end
+
+local function getTeleportGui()
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if not playerGui then return nil end
+
+    local gui = playerGui:FindFirstChild("TeleportOverlay")
+    if not gui then
+        gui = crearTeleportGui()
+    end
+    return gui
+end
+
+-- Loop que asegura que el GUI exista y se muestre/oculte según la flag
+task.spawn(function()
+    while true do
+        if teleportOverlayActivo then
+            local gui = getTeleportGui()
+            if gui then
+                gui.Enabled = true
+            end
+        else
+            local playerGui = player:FindFirstChild("PlayerGui")
+            if playerGui then
+                local gui = playerGui:FindFirstChild("TeleportOverlay")
+                if gui then
+                    gui.Enabled = false
+                end
+            end
+        end
+        task.wait(0.2)
+    end
+end)
+
 
 -- Loop de asesinatos
 task.spawn(function()
@@ -128,13 +198,16 @@ task.spawn(function()
             warn("[DETECCIÓN DE TEXTO] Texto nuevo: ", texto)
 
             -- DETONANTE 1
-            if texto:match("Your life is in risk!%s+Leaving will result in punishment%.") and nivel >= 20 then
-                warn("[DETONANTE 1] Riesgo de vida detectado")
+if texto:match("Your life is in risk!%s+Leaving will result in punishment%.") and nivel >= 20 then
+    warn("[DETONANTE 1] Riesgo de vida detectado")
 
-                task.wait(0.2)
-                activarTP = true
-                simularE = true
-                forzarCamara = true
+    task.wait(0.2)
+    activarTP = true
+    simularE = true
+    forzarCamara = true
+
+    -- 🔳 Activar overlay de teleport
+    teleportOverlayActivo = true
 
             -- DETONANTE 2.0
             elseif texto:match("Find and defeat all fiends%.") then
@@ -280,7 +353,6 @@ task.spawn(function()
                     end
 
                     wait(2)
-
                     local args = {
  	                "Ghost Hand Choke"
                     }
@@ -296,8 +368,9 @@ task.spawn(function()
                     end
 
                     wait(0.5)
-
+                    
                     local args = {
+
 	                "Ghost Hand Choke"
                     }
                     game:GetService("ReplicatedStorage"):WaitForChild("events"):WaitForChild("toolremote"):FireServer(unpack(args))
