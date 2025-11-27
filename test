@@ -287,13 +287,6 @@ local animationReactions = {
 	["11367862252"] = { key = "m1", delay = 0, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
 	["8544289138"] = { key = "m1", delay = 0, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
 
---Parykicks
-	["11412048186"] = { key = "F", delay = 0.1, range = {min = 0, max = 1}, localAllowed = true , rv = false},
-	["854420980"] = { key = "F", delay = 0.1, range = {min = 0, max = 1}, localAllowed = true , rv = false},
-	["8544209804"] = { key = "F", delay = 0.1, range = {min = 0, max = 1}, localAllowed = true , rv = fals},
-    ["11367425425"] = { key = "F", delay = 0.1, range = {min = 0, max = 1}, localAllowed = true , rv = fals},
-
-
 -- ghost punch
 	["11805720948"] = { key = "Q", delay = 0.4, range = {min = 0, max = 28}, rv = false },
 --bomb X
