@@ -329,15 +329,15 @@ local animationReactions = {
 }
 animationReactions["11412048186"] = {
     { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
-    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
+    { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 }
 animationReactions["854420980"] = {
     { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },  
-    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
+    { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 }
 animationReactions["8544209804"] = {
     { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
-    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
+    { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 }
 
 animationReactions["11367425425"] = {
@@ -572,11 +572,19 @@ end)
 -- =====================
 -- Reaction validation + execution
 -- =====================
+
+
+
+
+
+
 local function getEffectiveKey(id, originalKey)
     -- sólo cuando redirectActive está ON (y la anim está en la lista) redirigimos R -> F
-    if redirectActive and originalKey == "R" or originalKey == "E" and Config.redirectAnimations and Config.redirectAnimations[id] then
-        return "F"
-    end
+if redirectActive and (originalKey == "R" or originalKey == "E")
+   and Config.redirectAnimations
+   and Config.redirectAnimations[id] then
+    return "F"
+end
     return originalKey
 end
 
