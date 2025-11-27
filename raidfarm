@@ -31,7 +31,13 @@ local Lighting = game:GetService("Lighting")
 -- Variables
 local player = Players.LocalPlayer
 local ct = player:WaitForChild("PlayerGui"):WaitForChild("guis"):WaitForChild("RaidHint")
-local nivel = player:WaitForChild("Data"):WaitForChild("Level").Value
+local levelValue = player:WaitForChild("Data"):WaitForChild("Level")
+local nivel = levelValue.Value
+
+levelValue:GetPropertyChangedSignal("Value"):Connect(function()
+    nivel = levelValue.Value
+    -- print("[Nivel] Ahora eres nivel:", nivel) -- opcional para debug
+end)
 
 -- Estados
 local activarAsesinato = false
