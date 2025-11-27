@@ -75,6 +75,8 @@ local RunService = game:GetService("RunService")
 local CAM_POS   = Vector3.new(1218.646, 1777.767, -834.123)
 local FOCUS_POS = Vector3.new(1194.452, 1761.865, -828.518)
 
+
+
 local FixedCam = {
     enabled = false,
     pos = CAM_POS,
@@ -82,6 +84,27 @@ local FixedCam = {
     _rs = nil,
     _curCamConn = nil,
     _typeConn = nil,
+}
+
+-- ======== PRESETS DE CÁMARA ========
+local CamPresets = {
+    -- Usa los que quieras y cambia coords
+    t1_risk = { -- para DETONANTE 1
+        pos   = Vector3.new(1218.646, 1777.767, -834.123),
+        focus = Vector3.new(1194.452, 1761.865, -828.518),
+    },
+    fiends_intro = { -- DETONANTE 2.0 (ejemplo, cambia tú)
+        pos   = Vector3.new(1100, 16150, -990),
+        focus = Vector3.new(1136, 16000, -985),
+    },
+    neon_meet = { -- DETONANTE 2.1 (ejemplo)
+        pos   = Vector3.new(1005, 1680, -845),
+        focus = Vector3.new(1024, 1661.17, -825),
+    },
+    wave5_zombie = { -- DETONANTE 3.1 (ejemplo)
+        pos   = Vector3.new(84, 78, -40),
+        focus = Vector3.new(84, 44, -9),
+    },
 }
 
 function FixedCam:_apply()
@@ -123,7 +146,23 @@ function FixedCam:enable()
             end
         end
     end)
+-- ======== EXTENSIONES DE FixedCam ========
+function FixedCam:usePreset(key)
+    local p = CamPresets[key]
+    if not p then return warn("[FixedCam] preset no encontrado:", key) end
+    self:set(p.pos, p.focus)
+    self:enable()
+end
 
+-- opcional: activa y apaga solo tras 'sec' segundos
+function FixedCam:play(key, sec)
+    self:usePreset(key)
+    if sec and sec > 0 then
+        task.delay(sec, function()
+            if self.enabled then self:disable() end
+        end)
+    end
+end
     -- Primer hook de CameraType para la cámara actual
     local cam = workspace.CurrentCamera
     if cam then
@@ -379,7 +418,7 @@ if texto:match("Your life is in risk!%s+Leaving will result in punishment%.") an
                     end
                 end)
                 blurRaidActivo = true
-                FixedCam:enable()
+                FixedCam:usePreset("t1_risk")
 
             -- DETONANTE 2.1
             elseif texto:match("Meet the neon hunter%.") then
