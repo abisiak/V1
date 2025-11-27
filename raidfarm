@@ -17,7 +17,6 @@ if not getgenv().AP_KEEP_INSTALLED then
 
     -- Lo armo YA para el próximo hop...
     arm()
-
     -- ...y también al momento exacto del teleport (por si tu exec sobreescribe colas).
     if LP and LP.OnTeleport then
         LP.OnTeleport:Connect(arm)
