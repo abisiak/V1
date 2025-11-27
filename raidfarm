@@ -87,8 +87,8 @@ local CamPresets = {
         focus = Vector3.new(1194.452, 1761.865, -828.518),
     },
     fiends_intro = {
-        pos   = Vector3.new(1100, 16150, -990),
-        focus = Vector3.new(1136, 16000, -985),
+        pos   = Vector3.new(161.8657684326172, 154.31065368652344, -216.0547332763672),
+        focus = Vector3.new(139.9436492919922, 139.5791015625, -169.602294921875),
     },
     neon_meet = {
         pos   = Vector3.new(1005, 1680, -845),
@@ -459,6 +459,8 @@ if texto:match("Your life is in risk!%s+Leaving will result in punishment%.") an
             elseif texto:match("Wave:%s*1") then
                 warn("[DETONANTE 3] Wave 1 detectado")
                 activarAsesinato = true
+                blurRaidActivo = true
+                FixedCam:usePreset("fiends_intro")
 
             -- DETONANTE 3.1 (Wave 5)
             elseif texto:match("Wave:%s*5") and not ejecutando then
