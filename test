@@ -7,7 +7,7 @@ local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 -- estado runtime temporal (no lo expongas en la UI)
-
+local redirectActive = false
 
 -- =====================
 -- Config (editable desde GUI / módulo externo)
@@ -17,6 +17,7 @@ local Config = {
     autoAttackEnabled = true,
     autoParryKickEnabled = true,
     cameraOffset = Vector3.new(3, 8, 15),
+    redirectEnabled = false,
     m1AnimationIds = {
     ["7568108641"] = true,
     ["7393166844"] = true,
@@ -74,6 +75,12 @@ local Config = {
     ["87443479643080"]  = true,
     ["117849900104484"]  = true,
     ["79984916073099"]  = true,
+    },
+    redirectAnimations = {
+        ["11412048186"] = true,
+        ["854420980"] = true,
+        ["8544209804"] = true,
+        ["11367425425"] = true,
     },
     getMaxAngleForDistance = function(distance)
         if distance < 1.5 then return 180 end
@@ -377,7 +384,14 @@ local keyActions = {
     E = function() remotes.remote:FireServer("Skill1") end,
     k = function() remotes.toolremote:FireServer("Ghost Hand Punch") end,
     axe = function() remotes.toolremote:FireServer("Claw Slash") end,
-    m1 = function()remotes.remote:FireServer("NormalAttack") end,
+    m1 = function()
+        remotes.remote:FireServer("NormalAttack")
+        -- activar redirección temporal SOLAMENTE si el toggle persistente lo permite
+        if Config.redirectEnabled then
+            redirectActive = true
+            task.delay(0.8, function() redirectActive = false end)
+        end
+    end,
 
     hammer = function() remotes.toolremote:FireServer("Blood Hammer Slam") end,
 }
@@ -569,6 +583,17 @@ end)
 
 
 
+local function getEffectiveKey(id, originalKey)
+    -- sólo cuando redirectActive está ON (y la anim está en la lista) redirigimos R -> F
+if redirectActive and (originalKey == "R" or originalKey == "E")
+   and Config.redirectAnimations
+   and Config.redirectAnimations[id] then
+    return "F"
+end
+    return originalKey
+end
+
+
 
  local function isValidReaction(player, id, distance, isLocal, enemyHRP, cfg)
     if not cfg then return false end
@@ -687,6 +712,11 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
     if not character then return end
 
 
+    -- >>> NUEVO: si es mi anim local y es una M1, activar redirect temporal
+    if isLocal and Config.m1AnimationIds[id] and Config.redirectEnabled then
+        redirectActive = true
+        task.delay(0.8, function() redirectActive = false end)
+    end
     -- <<< fin nuevo bloque
 
     local targetHRP = character:FindFirstChild("HumanoidRootPart")
@@ -958,6 +988,8 @@ _G.AutoParryAnimationReactions = animationReactions
 -- Asegurar el namespace API antes de asignar funciones (importantísimo)
 _G.AutoParryAPI = _G.AutoParryAPI or {}
 
+_G.AutoParryAPI.SetRedirectEnabled = function(val) Config.redirectEnabled = not not val end
+_G.AutoParryAPI.IsRedirectEnabled = function() return Config.redirectEnabled end
 
 _G.AutoParryAPI.ActivateLock = function(name, duration) activateLockManual(name, duration) end
 _G.AutoParryAPI.DeactivateLock = function() deactivateLock() end
@@ -1489,6 +1521,17 @@ local parryKickToggle = mainTab:CreateToggle({
     end,
 })
 
+local redirectToggle = mainTab:CreateToggle({
+    Name = "Parry clash",
+    CurrentValue = getConfig().redirectEnabled == true,
+    Flag = "RedirectRtoF",
+    Callback = function(value)
+        setConfigField("redirectEnabled", value)
+        if _G.AutoParryAPI and _G.AutoParryAPI.SetRedirectEnabled then
+            _G.AutoParryAPI.SetRedirectEnabled(value)
+        end
+    end,
+})
 
 
 local activateLockInput = mainTab:CreateInput({
