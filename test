@@ -385,8 +385,13 @@ local keyActions = {
     k = function() remotes.toolremote:FireServer("Ghost Hand Punch") end,
     axe = function() remotes.toolremote:FireServer("Claw Slash") end,
     m1 = function()
-    remotes.remote:FireServer("NormalAttack")
-end,
+        remotes.remote:FireServer("NormalAttack")
+        -- activar redirección temporal SOLAMENTE si el toggle persistente lo permite
+        if Config.redirectEnabled then
+            redirectActive = true
+            task.delay(0.8, function() redirectActive = false end)
+        end
+    end,
 
     hammer = function() remotes.toolremote:FireServer("Blood Hammer Slam") end,
 }
@@ -579,9 +584,15 @@ end)
 
 
 local function getEffectiveKey(id, originalKey)
-    -- redirect desactivado para pruebas
+    -- sólo cuando redirectActive está ON (y la anim está en la lista) redirigimos R -> F
+if redirectActive and (originalKey == "R" or originalKey == "E")
+   and Config.redirectAnimations
+   and Config.redirectAnimations[id] then
+    return "F"
+end
     return originalKey
 end
+
 
 
  local function isValidReaction(player, id, distance, isLocal, enemyHRP, cfg)
@@ -701,6 +712,12 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
     if not character then return end
 
 
+    -- >>> NUEVO: si es mi anim local y es una M1, activar redirect temporal
+    if isLocal and Config.m1AnimationIds[id] and Config.redirectEnabled then
+        redirectActive = true
+        task.delay(0.8, function() redirectActive = false end)
+    end
+    -- <<< fin nuevo bloque
 
     local targetHRP = character:FindFirstChild("HumanoidRootPart")
     if not targetHRP then return end
@@ -971,13 +988,9 @@ _G.AutoParryAnimationReactions = animationReactions
 -- Asegurar el namespace API antes de asignar funciones (importantísimo)
 _G.AutoParryAPI = _G.AutoParryAPI or {}
 
-_G.AutoParryAPI.SetRedirectEnabled = function(val)
-    -- noop: redirect desactivado para pruebas
-end
+_G.AutoParryAPI.SetRedirectEnabled = function(val) Config.redirectEnabled = not not val end
+_G.AutoParryAPI.IsRedirectEnabled = function() return Config.redirectEnabled end
 
-_G.AutoParryAPI.IsRedirectEnabled = function()
-    return false
-end
 _G.AutoParryAPI.ActivateLock = function(name, duration) activateLockManual(name, duration) end
 _G.AutoParryAPI.DeactivateLock = function() deactivateLock() end
 _G.AutoParryAPI.SetAutoParry = function(val) Config.autoParryEnabled = not not val end
