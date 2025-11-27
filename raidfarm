@@ -298,7 +298,6 @@ task.spawn(function()
 
                     -- Paso final tras matar al zombie
                     task.wait(1)
-                    presionarTecla2()
 
                     -- Activar teletransporte infinito cada 2s
                     task.spawn(function()
