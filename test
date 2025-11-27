@@ -279,9 +279,17 @@ local animationReactions = {
 --katanaman x1
 	["12536618082"] = { key = "F", delay = 0, range = {min = 0, max = 10.5} },
 --Parykicks
-	["11412413067"] = { key = "m1", delay = 0.18, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
-	["11367862252"] = { key = "m1", delay = 0.18, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
-	["8544289138"] = { key = "m1", delay = 0.18, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
+	["11412413067"] = { key = "m1", delay = 0, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
+	["11367862252"] = { key = "m1", delay = 0, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
+	["8544289138"] = { key = "m1", delay = 0, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
+
+--Parykicks
+	["11412048186"] = { key = "F", delay = 0.1, range = {min = 0, max = 1}, localAllowed = true , rv = false},
+	["854420980"] = { key = "F", delay = 0.1, range = {min = 0, max = 1}, localAllowed = true , rv = false},
+	["8544209804"] = { key = "F", delay = 0.1, range = {min = 0, max = 1}, localAllowed = true , rv = fals},
+    ["11367425425"] = { key = "F", delay = 0.1, range = {min = 0, max = 1}, localAllowed = true , rv = fals},
+
+
 -- ghost punch
 	["11805720948"] = { key = "Q", delay = 0.4, range = {min = 0, max = 28}, rv = false },
 --bomb X
@@ -342,7 +350,7 @@ animationReactions["8544209804"] = {
 
 animationReactions["11367425425"] = {
     { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
-    { key = "E", delay = 0.1, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
+    { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 }
 
 animationReactions["5502444144"] = {
