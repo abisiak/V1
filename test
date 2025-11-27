@@ -390,7 +390,7 @@ local keyActions = {
         remotes.remote:FireServer("NormalAttack")
         -- activar redirección temporal SOLAMENTE si el toggle persistente lo permite
         if Config.redirectEnabled then
-        redirectUntil = tick() + 10  -- 10 segundos desde AHORA
+        redirectUntil = tick() + 2  -- 10 segundos desde AHORA
     end
     end,
 
@@ -592,7 +592,7 @@ local function getEffectiveKey(id, originalKey)
        and (originalKey == "R" or originalKey == "E")
        and Config.redirectAnimations
        and Config.redirectAnimations[id] then
-        return "F"
+        return "FFF"
     end
     return originalKey
 end
@@ -719,7 +719,7 @@ local function onAnimationPlayed(track, owner, isLocal, playerObj)
 
     -- >>> NUEVO: si es mi anim local y es una M1, activar redirect temporal
 if isLocal and Config.m1AnimationIds[id] and Config.redirectEnabled then
-    redirectUntil = tick() + 10
+    redirectUntil = tick() + 2
 end
 
     -- <<< fin nuevo bloque
