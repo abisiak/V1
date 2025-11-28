@@ -134,7 +134,7 @@ end
 local function isPlayerHybrid()
     local states = LocalPlayer:FindFirstChild("states")
     if not states then return false end
-    local transformed = states:FindFirstChild("Transformed")
+    local transformed = states:FindFirstChild("FiendMode")
     return transformed ~= nil
 end
 
