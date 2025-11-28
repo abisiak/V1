@@ -335,19 +335,27 @@ local animationReactions = {
 animationReactions["11412048186"] = {
     { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
     { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
+{ key = "axe", delay = 0, range = {min = 0, max = 20},  rv = false, priority = 3, state = "hybrid", autoAttack = true },
+{ reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
 }
 animationReactions["854420980"] = {
     { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },  
     { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
+  { key = "axe", delay = 0, range = {min = 0, max = 20},  rv = false, priority = 3, state = "hybrid", autoAttack = true },
+{ reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
 }
 animationReactions["8544209804"] = {
     { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
     { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
+{ key = "axe", delay = 0, range = {min = 0, max = 20},  rv = false, priority = 3, state = "hybrid", autoAttack = true },
+{ reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
 }
 
 animationReactions["11367425425"] = {
     { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
     { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
+{ key = "axe", delay = 0, range = {min = 0, max = 20},  rv = false, priority = 3, state = "hybrid", autoAttack = true },
+{ reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
 }
 
 animationReactions["5502444144"] = {
@@ -384,7 +392,7 @@ local keyActions = {
     R = function() remotes.remote:FireServer("StrongAttack") end,
     E = function() remotes.remote:FireServer("Skill1") end,
     k = function() remotes.toolremote:FireServer("Ghost Hand Punch") end,
-    axe = function() remotes.toolremote:FireServer("Claw Slash") end,
+    axe = function() remotes.toolremote:FireServer("Axe Kick") end,
     m1 = function()
         remotes.remote:FireServer("NormalAttack")
         -- activar redirección temporal SOLAMENTE si el toggle persistente lo permite
