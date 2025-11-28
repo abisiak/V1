@@ -1,4 +1,3 @@
---actualiza porfavorr
 -- Auto-parry + Lock-On (LocalScript) - LIMPIO (sin GUI)
 -- Conserva conexiones, detección de animaciones y lock-on (controlable por código).
 local Players = game:GetService("Players")
