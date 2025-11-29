@@ -119,6 +119,24 @@ local function makeIdentifier(obj)
     return tostring(obj)
 end
 
+local function getHRPFromActor(actor)
+    if not actor or typeof(actor) ~= "Instance" then return nil end
+
+    local model = nil
+
+    if actor:IsA("Player") then
+        model = actor.Character
+    elseif actor:IsA("Model") then
+        model = actor
+    elseif actor:IsA("Humanoid") then
+        model = actor.Parent
+    end
+
+    if not model then return nil end
+    return model:FindFirstChild("HumanoidRootPart")
+end
+
+
 local function containerIsTransformed(container)
     if not container or typeof(container) ~= "Instance" then return false end
     local t = container:FindFirstChild("Transformed")
@@ -361,25 +379,25 @@ animationReactions["11367425425"] = {
 animationReactions["5502444144"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true },
     { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
-    { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
+    { key = "E", delay = 0.1, range = {min = 0, max = 9.1},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
 }
 
 animationReactions["5502635805"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true },
     { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
-  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
+  { key = "E", delay = 0.1, range = {min = 0, max = 9.1},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
 }
 
 animationReactions["5502286572"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true },
     { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
-  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
+  { key = "E", delay = 0.1, range = {min = 0, max = 9.1},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
 }
 
 animationReactions["5502543898"] = {
     { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true },
     { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
-  { key = "E", delay = 0.1, range = {min = 0, max = 20},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
+  { key = "E", delay = 0.1, range = {min = 0, max = 9.1},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
 }
 
 -- =====================
