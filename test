@@ -701,6 +701,31 @@ local function react(playerObj, id, cfg)
             return
         end
 
+                if keyToUse == "axe" then
+            local hrp = getHRPFromActor(playerObj)
+            if hrp then
+                local p = hrp.Position
+                local targetPos
+
+                -- Si tu executor tiene `vector.create`, úsalo; si no, manda el Vector3 directo
+                local ok, _ = pcall(function()
+                    return vector and vector.create
+                end)
+
+                if ok and vector and typeof(vector.create) == "function" then
+                    targetPos = vector.create(p.X, p.Y, p.Z)
+                else
+                    targetPos = p  -- muchos remotes aceptan Vector3 normal
+                end
+
+                remotes.toolremote:FireServer("Axe Kick", targetPos)
+            else
+                -- fallback por si no encontramos HRP
+                remotes.toolremote:FireServer("Axe Kick")
+            end
+            return
+        end
+
         local action = keyActions[keyToUse]
         if action then
             action()
