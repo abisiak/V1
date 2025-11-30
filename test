@@ -377,23 +377,23 @@ animationReactions["11367425425"] = {
 }
 
 animationReactions["5502444144"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true, state = "hybrid" },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true, state = "hybrid" },
 }
 
 animationReactions["5502635805"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true, state = "hybrid" },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true, state = "hybrid" },
 }
 
 animationReactions["5502286572"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true, state = "hybrid" },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true, state = "hybrid" },
 }
 
 animationReactions["5502543898"] = {
-    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true },
-    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true, state = "hybrid" },
+    { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true, state = "hybrid" },
 }
 
 -- =====================
