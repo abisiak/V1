@@ -301,9 +301,9 @@ local animationReactions = {
 	["11382791600"] = { key = "F", delay = 0, range = {min = 0, max = 40}, rv = false },
 
 --Parykicks
-	["11412413067"] = { key = "m1", delay = 0, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
-	["11367862252"] = { key = "m1", delay = 0, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
-	["8544289138"] = { key = "m1", delay = 0, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
+	["11412413067"] = { key = "m1", delay = 0.15, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
+	["11367862252"] = { key = "m1", delay = 0.15, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
+	["8544289138"] = { key = "m1", delay = 0.15, range = {min = 0, max = 1}, localAllowed = true , rv = false, autoParryKick = true},
 
 -- ghost punch
 	["11805720948"] = { key = "Q", delay = 0.4, range = {min = 0, max = 28}, rv = false },
@@ -351,53 +351,49 @@ local animationReactions = {
 	["126438176215231"] = { key = "Q", delay = 0.1, range = {min = 0, max = 35}, rv = false },
 }
 animationReactions["11412048186"] = {
-    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
+    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, state = "human" },
     { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 { key = "axe", delay = 0, range = {min = 0, max = 20},  rv = false, priority = 3, state = "hybrid", autoAttack = true },
 { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
 }
 animationReactions["854420980"] = {
-    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },  
+    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, state = "human" },  
     { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
   { key = "axe", delay = 0, range = {min = 0, max = 20},  rv = false, priority = 3, state = "hybrid", autoAttack = true },
 { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
 }
 animationReactions["8544209804"] = {
-    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
+    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, state = "human" },
     { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 { key = "axe", delay = 0, range = {min = 0, max = 20},  rv = false, priority = 3, state = "hybrid", autoAttack = true },
 { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
 }
 
 animationReactions["11367425425"] = {
-    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true },
+    { key = "R",   delay = 0, range = {min = 0, max = 24}, rv = false, priority = 1, autoAttack = true, state = "human" },
     { key = "E", delay = 0, range = {min = 0, max = 9},  rv = false, priority = 2, state = "human", autoAttack = true },
 { key = "axe", delay = 0, range = {min = 0, max = 20},  rv = false, priority = 3, state = "hybrid", autoAttack = true },
 { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
 }
 
 animationReactions["5502444144"] = {
-    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true },
     { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
-    { key = "E", delay = 0.1, range = {min = 0, max = 9.1},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
 }
 
 animationReactions["5502635805"] = {
-    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true },
     { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
-  { key = "E", delay = 0.1, range = {min = 0, max = 9.1},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
 }
 
 animationReactions["5502286572"] = {
-    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true },
     { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
-  { key = "E", delay = 0.1, range = {min = 0, max = 9.1},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
 }
 
 animationReactions["5502543898"] = {
-    { key = "k",   delay = 0.3, range = {min = 0, max = 10}, rv = false, autoAttack = true },
+    { key = "R",   delay = 0.1, range = {min = 0, max = 10}, rv = false, autoAttack = true },
     { reaction = "lock", delay = 0, range = {min = 0, max = 20}, rv = false, autoAttack = true },
-  { key = "E", delay = 0.1, range = {min = 0, max = 9.1},  rv = false, priority = 2, state = "hybrid", autoAttack = true },
 }
 
 -- =====================
